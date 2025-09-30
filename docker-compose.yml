@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  api:
+    container_name: snippet-api
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
+      PERMISSION_URL: ${PERMISSION_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    container_name: snippet-db
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - snippet-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+
+volumes:
+  snippet-db:
