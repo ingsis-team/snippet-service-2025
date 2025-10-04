@@ -6,15 +6,15 @@ services:
     build:
       context: .
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
-      PERMISSION_URL: ${PERMISSION_URL}
+      DB_USER: ${POSTGRES_USER:-snippetuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-snippetpass}
+      DB_NAME: ${POSTGRES_DB:-snippetdb}
+      DB_HOST: db
+      DB_PORT: 5432
+      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL:-http://localhost:8081}
+      PERMISSION_URL: ${PERMISSION_URL:-http://localhost:8082}
     depends_on:
       db:
         condition: service_healthy
@@ -25,15 +25,18 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-snippetuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-snippetpass}
+      POSTGRES_DB: ${POSTGRES_DB:-snippetdb}
     volumes:
-      - snippet-db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-snippetuser} -d ${POSTGRES_DB:-snippetdb}"]
       interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
 
 volumes:
-  snippet-db:
+  postgres_data:
