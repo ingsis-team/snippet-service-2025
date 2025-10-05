@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class SnippetService2025Application
 
 fun main(args: Array<String>) {
-    runApplication<SnippetService2025Application>(*args)
+    runApplication<com.ingsisteam.snippetservice2025.SnippetService2025Application>(*args)
 }

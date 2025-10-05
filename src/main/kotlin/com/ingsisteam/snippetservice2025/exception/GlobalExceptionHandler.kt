@@ -19,6 +19,16 @@ class GlobalExceptionHandler {
         val path: String? = null,
     )
 
+    data class SyntaxErrorResponse(
+        val timestamp: LocalDateTime = LocalDateTime.now(),
+        val status: Int,
+        val error: String,
+        val message: String,
+        val rule: String,
+        val line: Int,
+        val column: Int,
+    )
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationExceptions(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
         val errors = ex.bindingResult.allErrors.map { error ->
@@ -31,6 +41,19 @@ class GlobalExceptionHandler {
             status = HttpStatus.BAD_REQUEST.value(),
             error = "Validation Failed",
             message = errors,
+        )
+        return ResponseEntity.badRequest().body(errorResponse)
+    }
+
+    @ExceptionHandler(SyntaxValidationException::class)
+    fun handleSyntaxValidationException(ex: SyntaxValidationException): ResponseEntity<SyntaxErrorResponse> {
+        val errorResponse = SyntaxErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = "Syntax Validation Failed",
+            message = ex.message ?: "Invalid syntax in uploaded file",
+            rule = ex.rule,
+            line = ex.line,
+            column = ex.column,
         )
         return ResponseEntity.badRequest().body(errorResponse)
     }

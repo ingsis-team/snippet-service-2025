@@ -1,33 +1,32 @@
-# Multi-stage build para optimizar el tamaño de la imagen final
+# 1. Construir JAR con Gradle
 FROM gradle:8.5-jdk21 AS builder
+WORKDIR /home/gradle/project
 
-WORKDIR /app
-COPY gradle gradle
-COPY gradlew .
-COPY build.gradle .
-COPY settings.gradle .
-
-# Descargar dependencias primero (para aprovechar cache de Docker)
+# Copiar archivos de configuración de Gradle
+COPY build.gradle settings.gradle gradle/ ./
 RUN gradle dependencies --no-daemon
 
-# Copiar código fuente y compilar
+# Copiar el código fuente y construir el JAR
 COPY src src
 RUN gradle bootJar --no-daemon
 
-# Imagen final más liviana
-FROM openjdk:21-jre-slim
+# 2. Imagen final ligera
+FROM openjdk:21-slim
 
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+# Instalar cliente de PostgreSQL y limpiar cache de APT
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
+# Crear un usuario no root para seguridad
+RUN groupadd -r spring && useradd -r -g spring spring
+
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar el JAR compilado desde la etapa anterior
-COPY --from=builder /app/build/libs/snippet-service-2025-0.0.1-SNAPSHOT.jar app.jar
+# Copiar el JAR generado desde la etapa anterior
+COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
 
-# Crear usuario no-root por seguridad
-RUN addgroup --system spring && adduser --system spring --ingroup spring
-USER spring:spring
-
+# Cambiar al usuario sin privilegios
+USER spring
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "app.jar"]

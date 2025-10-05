@@ -10,6 +10,7 @@ data class SnippetResponseDTO(
     val language: SnippetLanguage,
     val content: String,
     val userId: String,
+    val version: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
 )

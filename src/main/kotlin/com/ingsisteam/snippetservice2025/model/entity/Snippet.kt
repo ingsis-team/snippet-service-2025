@@ -35,6 +35,9 @@ data class Snippet(
     @Column(name = "user_id", nullable = false)
     var userId: String,
 
+    @Column(nullable = false)
+    var version: String,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
@@ -48,6 +51,7 @@ data class Snippet(
         language = SnippetLanguage.PRINTSCRIPT,
         content = "",
         userId = "",
+        version = "",
     )
 
     @PreUpdate
