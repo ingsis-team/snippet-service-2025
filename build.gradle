@@ -1,8 +1,10 @@
 plugins {
 	id 'org.jetbrains.kotlin.jvm' version '1.9.25'
 	id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
+	id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
 	id 'org.springframework.boot' version '3.5.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.jlleitschuh.gradle.ktlint' version '12.1.0'
 }
 
 group = 'com.ingsis-team'
@@ -21,10 +23,28 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+
+	// Database
+	runtimeOnly 'org.postgresql:postgresql'
+
+	// Swagger/OpenAPI
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+	// Jackson for JSON
+	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+	testImplementation 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Environment variable management
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 kotlin {
@@ -35,4 +55,14 @@ kotlin {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+ktlint {
+	version = "0.50.0"
+	outputToConsole = true
+	coloredOutput = true
+	reporters {
+		reporter "checkstyle"
+		reporter "json"
+	}
 }
