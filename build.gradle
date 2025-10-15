@@ -43,8 +43,8 @@ dependencies {
 	testImplementation 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // Environment variable management
-    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	// Environment variable management
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 kotlin {
