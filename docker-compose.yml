@@ -6,15 +6,15 @@ services:
     build:
       context: .
     ports:
-      - "8081:8080"
+      - "8080:8080"
     environment:
       DB_USER: ${POSTGRES_USER:-snippetuser}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-snippetpass}
       DB_NAME: ${POSTGRES_DB:-snippetdb}
       DB_HOST: db
       DB_PORT: 5432
-      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL:-http://localhost:8081}
-      PERMISSION_URL: ${PERMISSION_URL:-http://localhost:8082}
+      PERMISSION_URL: ${PERMISSION_URL:-http://localhost:8081}
+      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL:-http://localhost:8082}
     depends_on:
       db:
         condition: service_healthy
