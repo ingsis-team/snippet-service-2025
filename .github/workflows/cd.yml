@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/ingsis-team/ingsis-snippet-service-2025
+  IMAGE_NAME: ghcr.io/ingsis-team/snippet-service-2025
 
 jobs:
   publish_to_registry:
