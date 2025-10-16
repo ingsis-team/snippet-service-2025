@@ -8,13 +8,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_USER: ${POSTGRES_USER:-snippetuser}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-snippetpass}
-      DB_NAME: ${POSTGRES_DB:-snippetdb}
-      DB_HOST: db
-      DB_PORT: 5432
-      PERMISSION_URL: ${PERMISSION_URL:-http://localhost:8081}
-      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL:-http://localhost:8082}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      PERMISSION_URL: ${PERMISSION_URL}
+      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
     depends_on:
       db:
         condition: service_healthy
