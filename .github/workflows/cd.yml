@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev]
 
 permissions:
   contents: read
@@ -31,7 +31,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            type=ref,event=branch
+            type=raw,value=${{ github.ref_name }}
             type=raw,value=sha-${{ steps.short-sha.outputs.sha }}
 
       - name: Configure Docker Buildx
