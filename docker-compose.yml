@@ -2,11 +2,12 @@ version: '3.9'
 
 services:
   api:
-    container_name: snippet-api
+    container_name: snippet-api-${ENVIRONMENT}
+    image: ghcr.io/ingsis-team/snippet-service-2025:${ENVIRONMENT}
     build:
       context: .
     ports:
-      - "8080:8080"
+      - "${API_PORT}:8080"
     environment:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -20,10 +21,10 @@ services:
         condition: service_healthy
 
   db:
-    container_name: snippet-db
+    container_name: snippet-db-${ENVIRONMENT}
     image: postgres:17
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -40,3 +41,4 @@ services:
 
 volumes:
   postgres_data:
+    name: postgres_data_${ENVIRONMENT}
