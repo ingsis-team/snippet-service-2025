@@ -24,7 +24,7 @@ services:
     container_name: snippet-db-${ENVIRONMENT}
     image: postgres:17
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_HOST_PORT}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
