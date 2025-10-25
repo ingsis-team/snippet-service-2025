@@ -1,5 +1,7 @@
 package com.ingsisteam.snippetservice2025.controller
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.interfaces.DecodedJWT
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
 import com.ingsisteam.snippetservice2025.service.SnippetService
@@ -18,8 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import com.auth0.jwt.JWT
-import com.auth0.jwt.interfaces.DecodedJWT
 
 @RestController
 @RequestMapping("/api/snippets")
@@ -86,7 +86,7 @@ class SnippetController(
     // Extraer userId del token
     private fun extractUserIdFromAuth(authHeader: String): String {
         val token = authHeader.removePrefix("Bearer ").trim()
-        val decoded : DecodedJWT = JWT.decode(token)
+        val decoded: DecodedJWT = JWT.decode(token)
         return decoded.subject
     }
 }
