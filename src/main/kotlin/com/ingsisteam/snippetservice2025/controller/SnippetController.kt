@@ -1,5 +1,7 @@
 package com.ingsisteam.snippetservice2025.controller
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.interfaces.DecodedJWT
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
 import com.ingsisteam.snippetservice2025.service.SnippetService
@@ -81,11 +83,10 @@ class SnippetController(
         return ResponseEntity.ok(snippets)
     }
 
-    // Método temporal para extraer userId del header Authorization
-    // Más adelante se reemplazará por lógica de JWT
+    // Extraer userId del token
     private fun extractUserIdFromAuth(authHeader: String): String {
-        // Por ahora retornamos un userId fijo para testing
-        // TODO: Implementar extracción real del JWT token
-        return "user-test-123"
+        val token = authHeader.removePrefix("Bearer ").trim()
+        val decoded: DecodedJWT = JWT.decode(token)
+        return decoded.subject
     }
 }
