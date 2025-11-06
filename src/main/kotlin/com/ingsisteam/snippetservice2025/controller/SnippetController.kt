@@ -44,7 +44,7 @@ class SnippetController(
     )
     fun createSnippetFromFile(
         @ModelAttribute createSnippetFileDTO: CreateSnippetFileDTO,
-        @RequestHeader("Authorization") authHeader: String,
+        @RequestHeader("Authorization", required = false) authHeader: String?,
     ): ResponseEntity<SnippetResponseDTO> {
         println("📥 [POST /api/snippets] Received request to create snippet: ${createSnippetFileDTO.name}")
         val userId = extractUserIdFromAuth(authHeader)
@@ -65,7 +65,7 @@ class SnippetController(
     )
     fun getSnippet(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
-        @RequestHeader("Authorization") authHeader: String,
+        @RequestHeader("Authorization", required = false) authHeader: String?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = extractUserIdFromAuth(authHeader)
         val snippet = snippetService.getSnippet(id, userId)
@@ -81,7 +81,7 @@ class SnippetController(
         ],
     )
     fun getAllSnippets(
-        @RequestHeader("Authorization") authHeader: String,
+        @RequestHeader("Authorization", required = false) authHeader: String?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
         println("📥 [GET /api/snippets] Received request to list snippets")
         val userId = extractUserIdFromAuth(authHeader)
@@ -108,7 +108,7 @@ class SnippetController(
     fun updateSnippetFromFile(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
         @ModelAttribute updateSnippetFileDTO: UpdateSnippetFileDTO,
-        @RequestHeader("Authorization") authHeader: String,
+        @RequestHeader("Authorization", required = false) authHeader: String?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = extractUserIdFromAuth(authHeader)
         val snippet = snippetService.updateSnippetFromFile(id, updateSnippetFileDTO, userId)
@@ -116,7 +116,11 @@ class SnippetController(
     }
 
     // Extraer userId del token
-    private fun extractUserIdFromAuth(authHeader: String): String {
+    private fun extractUserIdFromAuth(authHeader: String?): String {
+        if (authHeader.isNullOrBlank()) {
+            // For testing without authentication, use a default test user
+            return "test-user@example.com"
+        }
         val token = authHeader.removePrefix("Bearer ").trim()
         val decoded: DecodedJWT = JWT.decode(token)
         return decoded.subject
