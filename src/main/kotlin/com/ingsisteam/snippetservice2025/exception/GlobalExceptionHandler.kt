@@ -80,10 +80,14 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception::class)
     fun handleGenericException(ex: Exception): ResponseEntity<ErrorResponse> {
+        // Log the full exception for debugging
+        println("❌ [EXCEPTION] ${ex.javaClass.simpleName}: ${ex.message}")
+        ex.printStackTrace()
+        
         val errorResponse = ErrorResponse(
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
             error = "Internal Server Error",
-            message = "An unexpected error occurred",
+            message = ex.message ?: "An unexpected error occurred",
         )
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse)
     }
