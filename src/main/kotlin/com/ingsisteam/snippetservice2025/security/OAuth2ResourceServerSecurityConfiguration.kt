@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod.GET
 import org.springframework.http.HttpMethod.POST
+import org.springframework.http.HttpMethod.PUT
 import org.springframework.security.config.Customizer.withDefaults
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -29,16 +30,15 @@ class OAuth2ResourceServerSecurityConfiguration(
         http.authorizeHttpRequests {
             it
                 .requestMatchers("/").permitAll()
-                .requestMatchers(GET, "/snippets").authenticated()
-                .requestMatchers(GET, "/snippets/*").authenticated()
-                .requestMatchers(POST, "/snippets").authenticated()
+                .requestMatchers(GET, "/api/snippets").authenticated()
+                .requestMatchers(GET, "/api/snippets/*").authenticated()
+                .requestMatchers(POST, "/api/snippets").authenticated()
+                .requestMatchers(PUT, "/api/snippets/*").authenticated()
                 // .requestMatchers(GET, "/scopedAuthenticate").hasRole("read:snippets")
                 .anyRequest().authenticated()
         }
             .oauth2ResourceServer { it.jwt(withDefaults()) }
-            .cors {
-                it.disable()
-            }
+            .cors(withDefaults())
             .csrf {
                 it.disable()
             }

@@ -51,4 +51,19 @@ class PermissionServiceConnector(
             true
         }
     }
+
+    fun hasWritePermission(snippetId: Long, userId: String): Boolean {
+        return try {
+            val response = client.get()
+                .uri("/api/permissions/write-check?snippetId=$snippetId&userId=$userId")
+                .retrieve()
+                .bodyToMono(Boolean::class.java)
+                .block()
+            response ?: false
+        } catch (e: Exception) {
+            // In case of error, deny write access (fail-secure approach)
+            println("Warning: Could not check write permission for snippetId: $snippetId, error: ${e.message}")
+            false
+        }
+    }
 }

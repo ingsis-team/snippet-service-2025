@@ -4,6 +4,7 @@ import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
+import com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.entity.Snippet
 import com.ingsisteam.snippetservice2025.repository.SnippetRepository
 import org.springframework.stereotype.Service
@@ -84,6 +85,39 @@ class SnippetService(
         // Por ahora retornamos todos los snippets del usuario
         // En el futuro se podría consultar Permission Service para filtrar por permisos
         return snippetRepository.findByUserId(userId).map { toResponseDTO(it) }
+    }
+
+    fun updateSnippetFromFile(id: Long, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
+        // Verificar que el snippet existe
+        val snippet = snippetRepository.findById(id).orElse(null)
+            ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
+
+        // Verificar permisos de escritura con Permission Service
+        if (!permissionServiceConnector.hasWritePermission(id, userId)) {
+            throw IllegalAccessException("No tienes permisos de escritura para este snippet")
+        }
+
+        // Validar que el archivo no esté vacío
+        if (updateSnippetFileDTO.file.isEmpty) {
+            throw IllegalArgumentException("El archivo no puede estar vacío")
+        }
+
+        // Leer el contenido del archivo
+        val content = try {
+            String(updateSnippetFileDTO.file.bytes, Charsets.UTF_8)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Error al leer el archivo: ${e.message}")
+        }
+
+        // Delegar validación de sintaxis al PrintScript Service
+        // TODO: Descomentar cuando el servicio esté disponible
+        // validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
+
+        // Actualizar el contenido del snippet
+        snippet.content = content
+        val updatedSnippet = snippetRepository.save(snippet)
+
+        return toResponseDTO(updatedSnippet)
     }
 
     private fun validateSyntaxWithExternalService(content: String, language: String, version: String) {

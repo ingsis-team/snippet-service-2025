@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
+import com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.service.SnippetService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -44,8 +46,11 @@ class SnippetController(
         @ModelAttribute createSnippetFileDTO: CreateSnippetFileDTO,
         @RequestHeader("Authorization") authHeader: String,
     ): ResponseEntity<SnippetResponseDTO> {
+        println("📥 [POST /api/snippets] Received request to create snippet: ${createSnippetFileDTO.name}")
         val userId = extractUserIdFromAuth(authHeader)
+        println("👤 [POST /api/snippets] User ID: $userId")
         val snippet = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
+        println("✅ [POST /api/snippets] Snippet created successfully with ID: ${snippet.id}")
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -78,9 +83,36 @@ class SnippetController(
     fun getAllSnippets(
         @RequestHeader("Authorization") authHeader: String,
     ): ResponseEntity<List<SnippetResponseDTO>> {
+        println("📥 [GET /api/snippets] Received request to list snippets")
         val userId = extractUserIdFromAuth(authHeader)
+        println("👤 [GET /api/snippets] User ID: $userId")
         val snippets = snippetService.getAllSnippets(userId)
+        println("✅ [GET /api/snippets] Returning ${snippets.size} snippets")
         return ResponseEntity.ok(snippets)
+    }
+
+    @PutMapping("/{id}", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(
+        summary = "Actualizar snippet mediante archivo",
+        description = "Actualiza el contenido de un snippet subiendo un nuevo archivo con validación de sintaxis",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Snippet actualizado exitosamente"),
+            ApiResponse(responseCode = "400", description = "Archivo inválido o sintaxis incorrecta"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos de escritura"),
+            ApiResponse(responseCode = "404", description = "Snippet no encontrado"),
+        ],
+    )
+    fun updateSnippetFromFile(
+        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @ModelAttribute updateSnippetFileDTO: UpdateSnippetFileDTO,
+        @RequestHeader("Authorization") authHeader: String,
+    ): ResponseEntity<SnippetResponseDTO> {
+        val userId = extractUserIdFromAuth(authHeader)
+        val snippet = snippetService.updateSnippetFromFile(id, updateSnippetFileDTO, userId)
+        return ResponseEntity.ok(snippet)
     }
 
     // Extraer userId del token
