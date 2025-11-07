@@ -2,8 +2,10 @@ package com.ingsisteam.snippetservice2025.service
 
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
+import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
+import com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.entity.Snippet
 import com.ingsisteam.snippetservice2025.repository.SnippetRepository
@@ -87,6 +89,48 @@ class SnippetService(
         return snippetRepository.findByUserId(userId).map { toResponseDTO(it) }
     }
 
+    fun createSnippet(createSnippetDTO: CreateSnippetDTO, userId: String): SnippetResponseDTO {
+        // Verificar que no exista otro snippet con el mismo nombre para este usuario
+        if (snippetRepository.existsByUserIdAndName(userId, createSnippetDTO.name)) {
+            throw IllegalArgumentException("Ya existe un snippet con el nombre '${createSnippetDTO.name}'")
+        }
+
+        // Validar que el contenido no esté vacío
+        if (createSnippetDTO.content.isBlank()) {
+            throw IllegalArgumentException("El contenido no puede estar vacío")
+        }
+
+        // Delegar validación de sintaxis al PrintScript Service
+        // TODO: Descomentar cuando el servicio esté disponible
+        // validateSyntaxWithExternalService(createSnippetDTO.content, createSnippetDTO.language.name, createSnippetDTO.version)
+
+        // Crear el snippet
+        val snippet = Snippet(
+            name = createSnippetDTO.name,
+            description = createSnippetDTO.description,
+            language = createSnippetDTO.language,
+            content = createSnippetDTO.content,
+            userId = userId,
+            version = createSnippetDTO.version,
+        )
+
+        val savedSnippet = snippetRepository.save(snippet)
+
+        // Delegar creación de permisos al Permission Service
+        try {
+            permissionServiceConnector.createPermission(
+                snippetId = savedSnippet.id,
+                userId = userId,
+                role = "OWNER",
+            )
+        } catch (e: Exception) {
+            // Log warning but don't fail snippet creation
+            println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
+        }
+
+        return toResponseDTO(savedSnippet)
+    }
+
     fun updateSnippetFromFile(id: Long, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
         // Verificar que el snippet existe
         val snippet = snippetRepository.findById(id).orElse(null)
@@ -115,6 +159,32 @@ class SnippetService(
 
         // Actualizar el contenido del snippet
         snippet.content = content
+        val updatedSnippet = snippetRepository.save(snippet)
+
+        return toResponseDTO(updatedSnippet)
+    }
+
+    fun updateSnippet(id: Long, updateSnippetDTO: UpdateSnippetDTO, userId: String): SnippetResponseDTO {
+        // Verificar que el snippet existe
+        val snippet = snippetRepository.findById(id).orElse(null)
+            ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
+
+        // Verificar permisos de escritura con Permission Service
+        if (!permissionServiceConnector.hasWritePermission(id, userId)) {
+            throw IllegalAccessException("No tienes permisos de escritura para este snippet")
+        }
+
+        // Validar que el contenido no esté vacío
+        if (updateSnippetDTO.content.isBlank()) {
+            throw IllegalArgumentException("El contenido no puede estar vacío")
+        }
+
+        // Delegar validación de sintaxis al PrintScript Service
+        // TODO: Descomentar cuando el servicio esté disponible
+        // validateSyntaxWithExternalService(updateSnippetDTO.content, snippet.language.name, snippet.version)
+
+        // Actualizar el contenido del snippet
+        snippet.content = updateSnippetDTO.content
         val updatedSnippet = snippetRepository.save(snippet)
 
         return toResponseDTO(updatedSnippet)
