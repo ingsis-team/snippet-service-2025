@@ -12,12 +12,11 @@ class StringToSnippetLanguageConverter : Converter<String, SnippetLanguage> {
             SnippetLanguage.valueOf(source.uppercase())
         } catch (e: IllegalArgumentException) {
             // If exact match fails, try case-insensitive match
-            SnippetLanguage.values().firstOrNull { 
-                it.name.equals(source, ignoreCase = true) 
+            SnippetLanguage.values().firstOrNull {
+                it.name.equals(source, ignoreCase = true)
             } ?: throw IllegalArgumentException(
-                "Invalid language: '$source'. Valid values are: ${SnippetLanguage.values().joinToString { it.name }}"
+                "Invalid language: '$source'. Valid values are: ${SnippetLanguage.values().joinToString { it.name }}",
             )
         }
     }
 }
-

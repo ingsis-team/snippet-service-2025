@@ -20,4 +20,3 @@ data class CreateSnippetDTO(
     @field:NotBlank(message = "Version cannot be null or empty")
     val version: String,
 )
-

@@ -6,4 +6,3 @@ data class UpdateSnippetDTO(
     @field:NotBlank(message = "Content cannot be null or empty")
     val content: String,
 )
-

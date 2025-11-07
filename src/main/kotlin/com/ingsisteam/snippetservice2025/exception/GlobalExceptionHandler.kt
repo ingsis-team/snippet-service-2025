@@ -83,7 +83,7 @@ class GlobalExceptionHandler {
         // Log the full exception for debugging
         println("❌ [EXCEPTION] ${ex.javaClass.simpleName}: ${ex.message}")
         ex.printStackTrace()
-        
+
         val errorResponse = ErrorResponse(
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
             error = "Internal Server Error",
