@@ -1,6 +1,7 @@
 package com.ingsisteam.snippetservice2025.controller
 
 import com.ingsisteam.snippetservice2025.model.dto.CreateTestDTO
+import com.ingsisteam.snippetservice2025.model.dto.RunTestResponseDTO
 import com.ingsisteam.snippetservice2025.model.dto.TestResponseDTO
 import com.ingsisteam.snippetservice2025.service.SnippetTestService
 import io.swagger.v3.oas.annotations.Operation
@@ -100,5 +101,31 @@ class SnippetTestController(
         val tests = snippetTestService.getTestsBySnippet(snippetId, userId)
         println("✅ [GET /api/snippets/$snippetId/tests] Returning ${tests.size} tests")
         return ResponseEntity.ok(tests)
+    }
+
+    @PostMapping("/{testId}/run")
+    @Operation(
+        summary = "Ejecutar un test de un snippet",
+        description = "Ejecuta un test específico de un snippet y devuelve el resultado de la ejecución",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Test ejecutado exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos para ejecutar tests de este snippet"),
+            ApiResponse(responseCode = "404", description = "Test o snippet no encontrado"),
+            ApiResponse(responseCode = "500", description = "Error al ejecutar el test"),
+        ],
+    )
+    fun runTest(
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del test a ejecutar") @PathVariable testId: Long,
+        @AuthenticationPrincipal jwt: Jwt,
+    ): ResponseEntity<RunTestResponseDTO> {
+        val userId = jwt.subject
+        println("📥 [POST /api/snippets/$snippetId/tests/$testId/run] User ID: $userId")
+        val result = snippetTestService.runTest(snippetId, testId, userId)
+        println("✅ [POST /api/snippets/$snippetId/tests/$testId/run] Test ${if (result.passed) "PASSED" else "FAILED"}")
+        return ResponseEntity.ok(result)
     }
 }

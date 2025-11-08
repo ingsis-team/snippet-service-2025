@@ -1,5 +1,7 @@
 package com.ingsisteam.snippetservice2025.connector
 
+import com.ingsisteam.snippetservice2025.model.dto.external.RunRequest
+import com.ingsisteam.snippetservice2025.model.dto.external.RunResponse
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationRequest
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResponse
 import org.springframework.beans.factory.annotation.Value
@@ -42,5 +44,30 @@ class PrintScriptServiceConnector(
                 ),
             )
             .block() ?: ValidationResponse(isValid = false)
+    }
+
+    fun runSnippet(
+        userId: String,
+        snippetId: String,
+        language: String,
+        version: String,
+        input: String,
+        correlationId: String,
+    ): RunResponse {
+        val request = RunRequest(
+            userId = userId,
+            snippetId = snippetId,
+            language = language,
+            version = version,
+            input = input,
+            correlationId = correlationId,
+        )
+
+        return client.post()
+            .uri("/run")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(RunResponse::class.java)
+            .block() ?: throw RuntimeException("Error al ejecutar el snippet")
     }
 }
