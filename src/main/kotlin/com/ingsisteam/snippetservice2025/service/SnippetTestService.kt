@@ -77,7 +77,7 @@ class SnippetTestService(
         println("📋 [GET TESTS] Getting all tests for snippet $snippetId by user $userId")
 
         // Verificar que el snippet existe
-        val snippet = snippetRepository.findById(snippetId).orElse(null)
+        snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de lectura
