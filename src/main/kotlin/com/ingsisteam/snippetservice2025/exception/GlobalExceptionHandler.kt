@@ -111,4 +111,24 @@ class GlobalExceptionHandler {
         )
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse)
     }
+
+    @ExceptionHandler(SnippetNotFoundException::class)
+    fun handleSnippetNotFoundException(ex: SnippetNotFoundException): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            status = HttpStatus.NOT_FOUND.value(),
+            error = "Snippet Not Found",
+            message = ex.message,
+        )
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse)
+    }
+
+    @ExceptionHandler(TestNotFoundException::class)
+    fun handleTestNotFoundException(ex: TestNotFoundException): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            status = HttpStatus.NOT_FOUND.value(),
+            error = "Test Not Found",
+            message = ex.message,
+        )
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse)
+    }
 }
