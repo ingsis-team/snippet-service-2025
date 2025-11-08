@@ -30,14 +30,20 @@ class OAuth2ResourceServerSecurityConfiguration(
         http.authorizeHttpRequests {
             it
                 .requestMatchers("/").permitAll()
-                .requestMatchers(GET, "/api/snippets").permitAll() // Temporarily disabled for testing
-                .requestMatchers(GET, "/api/snippets/**").permitAll() // Temporarily disabled for testing
-                .requestMatchers(POST, "/api/snippets").permitAll() // Temporarily disabled for testing
-                .requestMatchers(PUT, "/api/snippets/**").permitAll() // Temporarily disabled for testing
-                // .requestMatchers(GET, "/scopedAuthenticate").hasRole("read:snippets")
-                .anyRequest().permitAll() // Temporarily disabled ALL auth for testing
+                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Rutas específicas primero
+                .requestMatchers(GET, "/api/snippets/users").authenticated()
+                .requestMatchers(POST, "/api/snippets/share").authenticated()
+                .requestMatchers(GET, "/api/share/users").authenticated()
+                .requestMatchers(POST, "/api/share").authenticated()
+                // Rutas genéricas después
+                .requestMatchers(GET, "/api/snippets").authenticated()
+                .requestMatchers(GET, "/api/snippets/**").authenticated()
+                .requestMatchers(POST, "/api/snippets").authenticated()
+                .requestMatchers(PUT, "/api/snippets/**").authenticated()
+                .anyRequest().authenticated()
         }
-            // .oauth2ResourceServer { it.jwt(withDefaults()) } // Temporarily disabled for testing
+            .oauth2ResourceServer { it.jwt(withDefaults()) }
             .cors(withDefaults())
             .csrf {
                 it.disable()
