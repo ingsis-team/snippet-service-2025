@@ -28,12 +28,12 @@ data class SnippetTest(
     @Column(nullable = false)
     var name: String,
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection
     @CollectionTable(name = "test_inputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "input_value", columnDefinition = "TEXT")
     var inputs: List<String> = emptyList(),
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection
     @CollectionTable(name = "test_outputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "output_value", columnDefinition = "TEXT")
     var expectedOutputs: List<String> = emptyList(),
