@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.connector
 
+import com.ingsisteam.snippetservice2025.model.dto.external.PermissionCheckResponse
 import com.ingsisteam.snippetservice2025.model.dto.external.PermissionRequest
 import com.ingsisteam.snippetservice2025.model.dto.external.PermissionResponse
 import org.springframework.beans.factory.annotation.Value
@@ -34,6 +35,25 @@ class PermissionServiceConnector(
             // Log error but don't fail snippet creation
             println("Warning: Could not create permission for snippetId: $snippetId, error: ${e.message}")
             null
+        }
+    }
+
+    /**
+     * Verifica si un usuario tiene permisos sobre un snippet y devuelve el rol
+     * @param snippetId ID del snippet
+     * @param userId ID del usuario
+     * @return PermissionCheckResponse con hasPermission y role
+     */
+    fun checkPermission(snippetId: Long, userId: String): PermissionCheckResponse {
+        return try {
+            client.get()
+                .uri("/api/permissions/check?snippetId=$snippetId&userId=$userId")
+                .retrieve()
+                .bodyToMono(PermissionCheckResponse::class.java)
+                .block() ?: PermissionCheckResponse(hasPermission = false, role = null)
+        } catch (e: Exception) {
+            println("[PermissionServiceConnector] Error al verificar permisos: ${e.message}")
+            throw RuntimeException("Error al verificar permisos: ${e.message}", e)
         }
     }
 
