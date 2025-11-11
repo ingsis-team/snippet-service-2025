@@ -18,3 +18,6 @@ data class PermissionCheckResponseDTO(
     val hasPermission: Boolean,
     val role: String? = null,
 )
+
+// Alias for compatibility
+typealias PermissionCheckResponse = PermissionCheckResponseDTO

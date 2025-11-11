@@ -9,14 +9,17 @@ services:
     ports:
       - "${API_PORT}:8080"
     environment:
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       PERMISSION_URL: http://permission-api-dev:8081
       PRINTSCRIPT_URL: http://printscript-api-dev:8080
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH_SERVER_URI: ${AUTH_SERVER_URI}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_MANAGEMENT_TOKEN: ${AUTH0_MANAGEMENT_TOKEN}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH_SERVER_URI}
     depends_on:
       db:
@@ -55,3 +58,4 @@ networks:
     external: true
   printscript-service-2025_default:
     external: true
+
