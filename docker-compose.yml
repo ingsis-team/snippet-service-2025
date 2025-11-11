@@ -14,8 +14,8 @@ services:
       DB_NAME: ${DB_NAME}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      PERMISSION_URL: ${PERMISSION_URL}
-      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
+      PERMISSION_URL: http://permission-api-dev:8081
+      PRINTSCRIPT_URL: http://printscript-api-dev:8080
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       AUTH_SERVER_URI: ${AUTH_SERVER_URI}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
@@ -24,6 +24,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
+      - permission-service-2025_default
+      - printscript-service-2025_default
 
   db:
     container_name: snippet-db-${ENVIRONMENT}
@@ -47,3 +51,11 @@ services:
 volumes:
   postgres_data:
     name: postgres_data_${ENVIRONMENT}
+
+networks:
+  default:
+  permission-service-2025_default:
+    external: true
+  printscript-service-2025_default:
+    external: true
+

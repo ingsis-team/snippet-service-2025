@@ -1,9 +1,11 @@
 package com.ingsisteam.snippetservice2025.connector
 
 import com.ingsisteam.snippetservice2025.model.dto.external.PermissionCheckResponse
+import com.ingsisteam.snippetservice2025.model.dto.external.PermissionCheckResponseDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.PermissionRequest
 import com.ingsisteam.snippetservice2025.model.dto.external.PermissionResponse
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -27,13 +29,15 @@ class PermissionServiceConnector(
         return try {
             client.post()
                 .uri("/api/permissions")
+                .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PermissionResponse::class.java)
                 .block()
         } catch (e: Exception) {
             // Log error but don't fail snippet creation
-            println("Warning: Could not create permission for snippetId: $snippetId, error: ${e.message}")
+            println("⚠️ [PERMISSION] Could not create permission for snippetId: $snippetId, error: ${e.message}")
+            e.printStackTrace()
             null
         }
     }
@@ -62,12 +66,13 @@ class PermissionServiceConnector(
             val response = client.get()
                 .uri("/api/permissions/check?snippetId=$snippetId&userId=$userId")
                 .retrieve()
-                .bodyToMono(Boolean::class.java)
+                .bodyToMono(PermissionCheckResponseDTO::class.java)
                 .block()
-            response ?: false
+            response?.hasPermission ?: false
         } catch (e: Exception) {
             // In case of error, allow access (fail-safe approach for now)
-            println("Warning: Could not check permission for snippetId: $snippetId, error: ${e.message}")
+            println("⚠️ [PERMISSION] Could not check permission for snippetId: $snippetId, error: ${e.message}")
+            e.printStackTrace()
             true
         }
     }
@@ -82,7 +87,8 @@ class PermissionServiceConnector(
             response ?: false
         } catch (e: Exception) {
             // In case of error, deny write access (fail-secure approach)
-            println("Warning: Could not check write permission for snippetId: $snippetId, error: ${e.message}")
+            println("⚠️ [PERMISSION] Could not check write permission for snippetId: $snippetId, error: ${e.message}")
+            e.printStackTrace()
             false
         }
     }

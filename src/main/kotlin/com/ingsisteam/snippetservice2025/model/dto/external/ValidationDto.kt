@@ -17,3 +17,11 @@ data class ValidationError(
     val column: Int,
     val message: String,
 )
+
+// DTO matching printscript-service ValidationResult
+data class ValidationResult(
+    val isValid: Boolean,
+    val rule: String,
+    val line: Int,
+    val column: Int,
+)

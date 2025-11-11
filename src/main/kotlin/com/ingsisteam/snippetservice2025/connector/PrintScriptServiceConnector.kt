@@ -1,8 +1,11 @@
 package com.ingsisteam.snippetservice2025.connector
 
-import com.ingsisteam.snippetservice2025.model.dto.external.ValidationRequest
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.ingsisteam.snippetservice2025.model.dto.external.ValidationError
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResponse
+import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResult
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -16,31 +19,70 @@ class PrintScriptServiceConnector(
         webClient.baseUrl(printScriptUrl).build()
     }
 
-    fun validateSnippet(content: String, language: String, version: String): ValidationResponse {
-        val request = ValidationRequest(
-            content = content,
-            language = language,
-            version = version,
-        )
+    private val objectMapper = ObjectMapper()
 
-        return client.post()
-            .uri("/api/validate")
-            .bodyValue(request)
-            .retrieve()
-            .bodyToMono(ValidationResponse::class.java)
-            .onErrorReturn(
+    fun validateSnippet(content: String, language: String, version: String): ValidationResponse {
+        return try {
+            // PrintScript service expects just the content string as @RequestBody String
+            // We send it as a JSON string value (content wrapped in quotes)
+            val result = client.post()
+                .uri("/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(content) // WebClient will serialize it properly as JSON string
+                .retrieve()
+                .bodyToMono(ValidationResult::class.java)
+                .onErrorReturn(
+                    ValidationResult(
+                        isValid = false,
+                        rule = "CONNECTION_ERROR",
+                        line = 1,
+                        column = 1,
+                    ),
+                )
+                .block()
+
+            // Convert ValidationResult to ValidationResponse
+            if (result == null) {
                 ValidationResponse(
                     isValid = false,
                     errors = listOf(
-                        com.ingsisteam.snippetservice2025.model.dto.external.ValidationError(
-                            rule = "CONNECTION_ERROR",
+                        ValidationError(
+                            rule = "UNKNOWN_ERROR",
                             line = 1,
                             column = 1,
-                            message = "Error connecting to validation service",
+                            message = "Validation service returned null",
                         ),
+                    ),
+                )
+            } else if (result.isValid) {
+                ValidationResponse(isValid = true, errors = null)
+            } else {
+                ValidationResponse(
+                    isValid = false,
+                    errors = listOf(
+                        ValidationError(
+                            rule = result.rule,
+                            line = result.line,
+                            column = result.column,
+                            message = "Validation failed: ${result.rule} at line ${result.line}, column ${result.column}",
+                        ),
+                    ),
+                )
+            }
+        } catch (e: Exception) {
+            println("⚠️ [PRINTSCRIPT] Could not validate snippet, error: ${e.message}")
+            e.printStackTrace()
+            ValidationResponse(
+                isValid = false,
+                errors = listOf(
+                    ValidationError(
+                        rule = "CONNECTION_ERROR",
+                        line = 1,
+                        column = 1,
+                        message = "Error connecting to validation service: ${e.message}",
                     ),
                 ),
             )
-            .block() ?: ValidationResponse(isValid = false)
+        }
     }
 }
