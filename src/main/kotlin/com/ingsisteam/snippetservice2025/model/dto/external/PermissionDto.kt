@@ -13,3 +13,8 @@ data class PermissionResponse(
     val role: String,
     val createdAt: String,
 )
+
+data class PermissionCheckResponseDTO(
+    val hasPermission: Boolean,
+    val role: String? = null,
+)

@@ -2,6 +2,7 @@ package com.ingsisteam.snippetservice2025.service
 
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
+import com.ingsisteam.snippetservice2025.exception.SyntaxValidationException
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
@@ -39,8 +40,7 @@ class SnippetService(
         }
 
         // Delegar validación de sintaxis al PrintScript Service
-        // TODO: Descomentar cuando el servicio esté disponible
-        // validateSyntaxWithExternalService(content, createSnippetFileDTO.language.name, createSnippetFileDTO.version)
+        validateSyntaxWithExternalService(content, createSnippetFileDTO.language.name, createSnippetFileDTO.version)
 
         // Crear el snippet
         val snippet = Snippet(
@@ -101,8 +101,7 @@ class SnippetService(
         }
 
         // Delegar validación de sintaxis al PrintScript Service
-        // TODO: Descomentar cuando el servicio esté disponible
-        // validateSyntaxWithExternalService(createSnippetDTO.content, createSnippetDTO.language.name, createSnippetDTO.version)
+        validateSyntaxWithExternalService(createSnippetDTO.content, createSnippetDTO.language.name, createSnippetDTO.version)
 
         // Crear el snippet
         val snippet = Snippet(
@@ -154,8 +153,7 @@ class SnippetService(
         }
 
         // Delegar validación de sintaxis al PrintScript Service
-        // TODO: Descomentar cuando el servicio esté disponible
-        // validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
+        validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
 
         // Actualizar el contenido del snippet
         snippet.content = content
@@ -180,8 +178,7 @@ class SnippetService(
         }
 
         // Delegar validación de sintaxis al PrintScript Service
-        // TODO: Descomentar cuando el servicio esté disponible
-        // validateSyntaxWithExternalService(updateSnippetDTO.content, snippet.language.name, snippet.version)
+        validateSyntaxWithExternalService(updateSnippetDTO.content, snippet.language.name, snippet.version)
 
         // Actualizar el contenido del snippet
         snippet.content = updateSnippetDTO.content
@@ -191,8 +188,6 @@ class SnippetService(
     }
 
     private fun validateSyntaxWithExternalService(content: String, language: String, version: String) {
-        // TODO: Implementar llamada real al PrintScript Service cuando esté disponible
-        /*
         val validationResponse = printScriptServiceConnector.validateSnippet(content, language, version)
 
         if (!validationResponse.isValid && !validationResponse.errors.isNullOrEmpty()) {
@@ -204,7 +199,6 @@ class SnippetService(
                 message = firstError.message,
             )
         }
-         */
     }
 
     private fun toResponseDTO(snippet: Snippet): SnippetResponseDTO {
