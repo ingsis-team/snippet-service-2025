@@ -10,9 +10,12 @@ data class PermissionRequest(
 
 data class PermissionResponse(
     val id: Long,
+    @JsonProperty("snippet_id")
     val snippetId: Long,
+    @JsonProperty("user_id")
     val userId: String,
     val role: String,
+    @JsonProperty("created_at")
     val createdAt: String,
 )
 

@@ -55,6 +55,22 @@ class ShareService(
 
         println("[ShareService] Usuario $currentUserId verificado como owner del snippet ${shareSnippetDTO.snippetId}")
 
+        // Verificar si el usuario ya tiene permisos sobre este snippet
+        val existingPermission = permissionServiceConnector.checkPermission(
+            snippetId = shareSnippetDTO.snippetId,
+            userId = shareSnippetDTO.targetUserId,
+        )
+
+        if (existingPermission.hasPermission) {
+            println("[ShareService] Usuario ${shareSnippetDTO.targetUserId} ya tiene permisos sobre el snippet ${shareSnippetDTO.snippetId} (rol: ${existingPermission.role})")
+            return ShareSnippetResponseDTO(
+                snippetId = shareSnippetDTO.snippetId,
+                sharedWithUserId = shareSnippetDTO.targetUserId,
+                role = existingPermission.role ?: "READ",
+                message = "El usuario ya tiene acceso a este snippet con rol: ${existingPermission.role}",
+            )
+        }
+
         // Crear permiso de lectura para el usuario objetivo
         val permissionResponse = permissionServiceConnector.createPermission(
             snippetId = shareSnippetDTO.snippetId,
