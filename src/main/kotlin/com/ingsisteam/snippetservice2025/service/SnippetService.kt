@@ -83,10 +83,15 @@ class SnippetService(
     }
 
     @Transactional(readOnly = true)
-    fun getAllSnippets(userId: String): List<SnippetResponseDTO> {
-        // Por ahora retornamos todos los snippets del usuario
-        // En el futuro se podría consultar Permission Service para filtrar por permisos
-        return snippetRepository.findByUserId(userId).map { toResponseDTO(it) }
+    fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
+        // Si hay filtro de nombre, buscar por nombre (case-insensitive, búsqueda parcial)
+        val snippets = if (nameFilter.isNullOrBlank()) {
+            snippetRepository.findByUserId(userId)
+        } else {
+            snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
+        }
+        
+        return snippets.map { toResponseDTO(it) }
     }
 
     fun createSnippet(createSnippetDTO: CreateSnippetDTO, userId: String): SnippetResponseDTO {

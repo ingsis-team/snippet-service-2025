@@ -109,7 +109,7 @@ class SnippetController(
     }
 
     @GetMapping
-    @Operation(summary = "Obtener todos los snippets", description = "Obtiene todos los snippets del usuario autenticado")
+    @Operation(summary = "Obtener todos los snippets", description = "Obtiene todos los snippets del usuario autenticado, opcionalmente filtrado por nombre")
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "Lista de snippets obtenida exitosamente"),
@@ -117,12 +117,14 @@ class SnippetController(
         ],
     )
     fun getAllSnippets(
+        @Parameter(description = "Filtrar por nombre de snippet (búsqueda parcial, case-insensitive)")
+        @RequestParam(required = false) name: String?,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
         val userId = getUserId(jwt)
-        println("📥 [GET /api/snippets] Received request to list snippets")
+        println("📥 [GET /api/snippets] Received request to list snippets${if (name != null) " with filter: $name" else ""}")
         println("👤 [GET /api/snippets] User ID: $userId")
-        val snippets = snippetService.getAllSnippets(userId)
+        val snippets = snippetService.getAllSnippets(userId, name)
         println("✅ [GET /api/snippets] Returning ${snippets.size} snippets")
         return ResponseEntity.ok(snippets)
     }
