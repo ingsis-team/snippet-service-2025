@@ -90,7 +90,7 @@ class SnippetService(
         } else {
             snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
         }
-        
+
         return snippets.map { toResponseDTO(it) }
     }
 
