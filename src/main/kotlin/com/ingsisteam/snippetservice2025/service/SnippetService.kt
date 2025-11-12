@@ -187,6 +187,26 @@ class SnippetService(
         return toResponseDTO(updatedSnippet)
     }
 
+    fun deleteSnippet(id: Long, userId: String) {
+        // Verificar que el usuario sea OWNER (solo los owners pueden eliminar)
+        val permissionCheck = permissionServiceConnector.checkPermission(id, userId)
+        if (!permissionCheck.hasPermission || permissionCheck.role != "OWNER") {
+            throw IllegalAccessException("Solo el propietario puede eliminar este snippet")
+        }
+
+        // Verificar que el snippet existe antes de eliminar
+        if (!snippetRepository.existsById(id)) {
+            throw NoSuchElementException("Snippet con ID $id no encontrado")
+        }
+
+        // Eliminar el snippet
+        snippetRepository.deleteById(id)
+        println("✅ [DELETE] Snippet $id eliminado por usuario $userId")
+
+        // TODO: También eliminar permisos en Permission Service
+        // permissionServiceConnector.deletePermissions(id)
+    }
+
     private fun validateSyntaxWithExternalService(content: String, language: String, version: String) {
         val validationResponse = printScriptServiceConnector.validateSnippet(content, language, version)
 

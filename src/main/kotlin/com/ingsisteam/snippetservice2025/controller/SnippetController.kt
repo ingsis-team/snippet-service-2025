@@ -20,6 +20,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PathVariable
@@ -38,6 +39,9 @@ class SnippetController(
     private val shareService: ShareService,
 ) {
 
+    // Helper function to extract user ID from JWT or use test user
+    private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
+
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(
         summary = "Crear un nuevo snippet mediante archivo",
@@ -52,9 +56,9 @@ class SnippetController(
     )
     fun createSnippetFromFile(
         @ModelAttribute createSnippetFileDTO: CreateSnippetFileDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [POST /api/snippets (file)] Received request to create snippet: ${createSnippetFileDTO.name}")
         println("👤 [POST /api/snippets (file)] User ID: $userId")
         val snippet = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
@@ -76,9 +80,9 @@ class SnippetController(
     )
     fun createSnippet(
         @RequestBody createSnippetDTO: CreateSnippetDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [POST /api/snippets (JSON)] Received request to create snippet: ${createSnippetDTO.name}")
         println("👤 [POST /api/snippets (JSON)] User ID: $userId")
         val snippet = snippetService.createSnippet(createSnippetDTO, userId)
@@ -97,9 +101,9 @@ class SnippetController(
     )
     fun getSnippet(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         val snippet = snippetService.getSnippet(id, userId)
         return ResponseEntity.ok(snippet)
     }
@@ -113,9 +117,9 @@ class SnippetController(
         ],
     )
     fun getAllSnippets(
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [GET /api/snippets] Received request to list snippets")
         println("👤 [GET /api/snippets] User ID: $userId")
         val snippets = snippetService.getAllSnippets(userId)
@@ -140,9 +144,9 @@ class SnippetController(
     fun updateSnippetFromFile(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
         @ModelAttribute updateSnippetFileDTO: UpdateSnippetFileDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [PUT /api/snippets/{id} (file)] Received request to update snippet: $id")
         val snippet = snippetService.updateSnippetFromFile(id, updateSnippetFileDTO, userId)
         println("✅ [PUT /api/snippets/{id} (file)] Snippet updated successfully")
@@ -166,9 +170,9 @@ class SnippetController(
     fun updateSnippet(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
         @RequestBody updateSnippetDTO: UpdateSnippetDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [PUT /api/snippets/{id} (JSON)] Received request to update snippet: $id")
         val snippet = snippetService.updateSnippet(id, updateSnippetDTO, userId)
         println("✅ [PUT /api/snippets/{id} (JSON)] Snippet updated successfully")
@@ -190,9 +194,9 @@ class SnippetController(
     fun getAvailableUsers(
         @Parameter(description = "Texto para filtrar usuarios por nombre o email")
         @RequestParam(required = false) search: String?,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<Auth0UserDTO>> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [GET /api/snippets/users] Recibiendo solicitud para obtener usuarios${if (search != null) " con filtro: $search" else ""}")
         println("👤 [GET /api/snippets/users] Usuario autenticado: $userId")
 
@@ -218,14 +222,40 @@ class SnippetController(
     )
     fun shareSnippet(
         @RequestBody shareSnippetDTO: ShareSnippetDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<ShareSnippetResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [POST /api/snippets/share] Recibiendo solicitud para compartir snippet ${shareSnippetDTO.snippetId} con usuario ${shareSnippetDTO.targetUserId}")
         println("👤 [POST /api/snippets/share] Usuario autenticado: $userId")
 
         val response = shareService.shareSnippet(shareSnippetDTO, userId)
         println("✅ [POST /api/snippets/share] Snippet compartido exitosamente")
         return ResponseEntity.ok(response)
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Eliminar snippet",
+        description = "Elimina un snippet. Solo el propietario (OWNER) puede eliminar snippets.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Snippet eliminado exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "No eres el propietario de este snippet"),
+            ApiResponse(responseCode = "404", description = "Snippet no encontrado"),
+        ],
+    )
+    fun deleteSnippet(
+        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<Void> {
+        val userId = getUserId(jwt)
+        println("📥 [DELETE /api/snippets/$id] Recibiendo solicitud para eliminar snippet")
+        println("👤 [DELETE /api/snippets/$id] Usuario autenticado: $userId")
+
+        snippetService.deleteSnippet(id, userId)
+        println("✅ [DELETE /api/snippets/$id] Snippet eliminado exitosamente")
+        return ResponseEntity.noContent().build()
     }
 }

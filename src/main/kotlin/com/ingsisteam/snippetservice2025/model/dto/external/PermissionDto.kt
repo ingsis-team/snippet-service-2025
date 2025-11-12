@@ -1,5 +1,7 @@
 package com.ingsisteam.snippetservice2025.model.dto.external
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class PermissionRequest(
     val snippet_id: Long,
     val user_id: String,
@@ -15,6 +17,7 @@ data class PermissionResponse(
 )
 
 data class PermissionCheckResponseDTO(
+    @JsonProperty("has_permission")
     val hasPermission: Boolean,
     val role: String? = null,
 )

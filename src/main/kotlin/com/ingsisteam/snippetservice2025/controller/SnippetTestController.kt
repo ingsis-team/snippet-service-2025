@@ -27,6 +27,9 @@ class SnippetTestController(
     private val snippetTestService: SnippetTestService,
 ) {
 
+    // Helper function to extract user ID from JWT or use test user
+    private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
+
     @PostMapping
     @Operation(
         summary = "Crear un test para un snippet",
@@ -44,9 +47,9 @@ class SnippetTestController(
     fun createTest(
         @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
         @Valid @RequestBody createTestDTO: CreateTestDTO,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [POST /api/snippets/$snippetId/tests] Received request to create test: ${createTestDTO.name}")
         println("👤 [POST /api/snippets/$snippetId/tests] User ID: $userId")
         val test = snippetTestService.createTest(snippetId, createTestDTO, userId)
@@ -70,9 +73,9 @@ class SnippetTestController(
     fun getTest(
         @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
         @Parameter(description = "ID del test") @PathVariable testId: Long,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [GET /api/snippets/$snippetId/tests/$testId] User ID: $userId")
         val test = snippetTestService.getTest(snippetId, testId, userId)
         return ResponseEntity.ok(test)
@@ -93,9 +96,9 @@ class SnippetTestController(
     )
     fun getTestsBySnippet(
         @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @AuthenticationPrincipal jwt: Jwt,
+        @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<TestResponseDTO>> {
-        val userId = jwt.subject
+        val userId = getUserId(jwt)
         println("📥 [GET /api/snippets/$snippetId/tests] User ID: $userId")
         val tests = snippetTestService.getTestsBySnippet(snippetId, userId)
         println("✅ [GET /api/snippets/$snippetId/tests] Returning ${tests.size} tests")
