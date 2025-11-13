@@ -29,7 +29,6 @@ class Auth0Connector(
     fun getUsers(search: String? = null): List<Auth0UserDTO> {
         // Si no hay token de Auth0, retornar usuarios mock para testing
         if (managementToken.isBlank()) {
-            println("[Auth0Connector] ⚠️ No Auth0 management token configured, returning mock users")
             return getMockUsers(search)
         }
 
@@ -48,8 +47,6 @@ class Auth0Connector(
                 .collectList()
                 .block() ?: emptyList()
         } catch (e: Exception) {
-            println("[Auth0Connector] Error al obtener usuarios: ${e.message}")
-            println("[Auth0Connector] Returning mock users as fallback")
             return getMockUsers(search)
         }
     }

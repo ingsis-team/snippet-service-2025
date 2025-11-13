@@ -59,10 +59,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets (file)] Received request to create snippet: ${createSnippetFileDTO.name}")
-        println("👤 [POST /api/snippets (file)] User ID: $userId")
         val snippet = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
-        println("✅ [POST /api/snippets (file)] Snippet created successfully with ID: ${snippet.id}")
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -83,10 +80,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets (JSON)] Received request to create snippet: ${createSnippetDTO.name}")
-        println("👤 [POST /api/snippets (JSON)] User ID: $userId")
         val snippet = snippetService.createSnippet(createSnippetDTO, userId)
-        println("✅ [POST /api/snippets (JSON)] Snippet created successfully with ID: ${snippet.id}")
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -122,10 +116,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
         val userId = getUserId(jwt)
-        println("📥 [GET /api/snippets] Received request to list snippets${if (name != null) " with filter: $name" else ""}")
-        println("👤 [GET /api/snippets] User ID: $userId")
         val snippets = snippetService.getAllSnippets(userId, name)
-        println("✅ [GET /api/snippets] Returning ${snippets.size} snippets")
         return ResponseEntity.ok(snippets)
     }
 
@@ -149,9 +140,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [PUT /api/snippets/{id} (file)] Received request to update snippet: $id")
         val snippet = snippetService.updateSnippetFromFile(id, updateSnippetFileDTO, userId)
-        println("✅ [PUT /api/snippets/{id} (file)] Snippet updated successfully")
         return ResponseEntity.ok(snippet)
     }
 
@@ -175,9 +164,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [PUT /api/snippets/{id} (JSON)] Received request to update snippet: $id")
         val snippet = snippetService.updateSnippet(id, updateSnippetDTO, userId)
-        println("✅ [PUT /api/snippets/{id} (JSON)] Snippet updated successfully")
         return ResponseEntity.ok(snippet)
     }
 
@@ -198,12 +185,7 @@ class SnippetController(
         @RequestParam(required = false) search: String?,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<Auth0UserDTO>> {
-        val userId = getUserId(jwt)
-        println("📥 [GET /api/snippets/users] Recibiendo solicitud para obtener usuarios${if (search != null) " con filtro: $search" else ""}")
-        println("👤 [GET /api/snippets/users] Usuario autenticado: $userId")
-
         val users = shareService.getAvailableUsers(search)
-        println("✅ [GET /api/snippets/users] Retornando ${users.size} usuarios")
         return ResponseEntity.ok(users)
     }
 
@@ -227,11 +209,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<ShareSnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets/share] Recibiendo solicitud para compartir snippet ${shareSnippetDTO.snippetId} con usuario ${shareSnippetDTO.targetUserId}")
-        println("👤 [POST /api/snippets/share] Usuario autenticado: $userId")
-
         val response = shareService.shareSnippet(shareSnippetDTO, userId)
-        println("✅ [POST /api/snippets/share] Snippet compartido exitosamente")
         return ResponseEntity.ok(response)
     }
 
@@ -253,11 +231,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Void> {
         val userId = getUserId(jwt)
-        println("📥 [DELETE /api/snippets/$id] Recibiendo solicitud para eliminar snippet")
-        println("👤 [DELETE /api/snippets/$id] Usuario autenticado: $userId")
-
         snippetService.deleteSnippet(id, userId)
-        println("✅ [DELETE /api/snippets/$id] Snippet eliminado exitosamente")
         return ResponseEntity.noContent().build()
     }
 
@@ -277,9 +251,7 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets/$id/execute] User ID: $userId with ${executeSnippetDTO.inputs.size} inputs")
         val result = snippetService.executeSnippet(id, executeSnippetDTO, userId)
-        println("✅ [POST /api/snippets/$id/execute] Execution completed with ${result.outputs.size} outputs")
         return ResponseEntity.ok(result)
     }
 }

@@ -65,7 +65,6 @@ class SnippetService(
             )
         } catch (e: Exception) {
             // Log warning but don't fail snippet creation
-            println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
         }
 
         // Trigger automatic formatting, linting, and testing
@@ -73,21 +72,20 @@ class SnippetService(
             printScriptServiceConnector.triggerAutomaticFormatting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content
+                content = savedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticLinting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content
+                content = savedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticTesting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content
+                content = savedSnippet.content,
             )
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting/linting/testing is optional
-            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${savedSnippet.id}: ${e.message}")
         }
 
         return toResponseDTO(savedSnippet)
@@ -153,7 +151,6 @@ class SnippetService(
             )
         } catch (e: Exception) {
             // Log warning but don't fail snippet creation
-            println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
         }
 
         return toResponseDTO(savedSnippet)
@@ -193,21 +190,20 @@ class SnippetService(
             printScriptServiceConnector.triggerAutomaticFormatting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticLinting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticTesting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting/linting/testing is optional
-            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${updatedSnippet.id}: ${e.message}")
         }
 
         return toResponseDTO(updatedSnippet)
@@ -240,21 +236,20 @@ class SnippetService(
             printScriptServiceConnector.triggerAutomaticFormatting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticLinting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
             printScriptServiceConnector.triggerAutomaticTesting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content
+                content = updatedSnippet.content,
             )
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting/linting/testing is optional
-            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${updatedSnippet.id}: ${e.message}")
         }
 
         return toResponseDTO(updatedSnippet)
@@ -274,7 +269,6 @@ class SnippetService(
 
         // Eliminar el snippet
         snippetRepository.deleteById(id)
-        println("✅ [DELETE] Snippet $id eliminado por usuario $userId")
 
         // TODO: También eliminar permisos en Permission Service
         // permissionServiceConnector.deletePermissions(id)
@@ -300,8 +294,6 @@ class SnippetService(
         executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
         userId: String,
     ): com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO {
-        println("🚀 [EXECUTE] Executing snippet $id for user $userId")
-
         // Verificar que el snippet existe
         val snippet = snippetRepository.findById(id).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $id no encontrado")
@@ -333,25 +325,19 @@ class SnippetService(
                         content
                     }
                     outputs.add(output)
-                    println("📤 [OUTPUT] $output")
                 }
 
                 // Handle readInput()
                 if (trimmed.contains("readInput(")) {
                     if (inputIndex < executeSnippetDTO.inputs.size) {
-                        val input = executeSnippetDTO.inputs[inputIndex]
-                        println("📥 [INPUT] Provided: $input")
                         inputIndex++
                     } else {
                         errors.add("Input required but not provided at line: $line")
                     }
                 }
             }
-
-            println("✅ [EXECUTE] Execution completed with ${outputs.size} outputs")
         } catch (e: Exception) {
             errors.add("Execution error: ${e.message}")
-            println("❌ [EXECUTE] Error: ${e.message}")
         }
 
         return com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO(

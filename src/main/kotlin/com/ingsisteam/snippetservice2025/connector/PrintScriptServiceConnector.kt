@@ -70,7 +70,6 @@ class PrintScriptServiceConnector(
                 )
             }
         } catch (e: Exception) {
-            println("⚠️ [PRINTSCRIPT] Could not validate snippet, error: ${e.message}")
             e.printStackTrace()
             ValidationResponse(
                 isValid = false,
@@ -94,7 +93,7 @@ class PrintScriptServiceConnector(
                 "userId" to userId,
                 "id" to snippetId,
                 "content" to content,
-                "correlationID" to java.util.UUID.randomUUID().toString()
+                "correlationID" to java.util.UUID.randomUUID().toString(),
             )
 
             // Call the endpoint to trigger automatic formatting
@@ -106,11 +105,8 @@ class PrintScriptServiceConnector(
                 .bodyToMono(String::class.java)
                 .onErrorComplete() // Don't fail snippet creation/update if formatting fails
                 .block()
-
-            println("✅ [AUTO-FORMAT] Triggered automatic formatting for snippet $snippetId")
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting is optional
-            println("⚠️ [AUTO-FORMAT] Could not trigger automatic formatting for snippet $snippetId: ${e.message}")
         }
     }
 
@@ -122,7 +118,7 @@ class PrintScriptServiceConnector(
                 "userId" to userId,
                 "id" to snippetId,
                 "content" to content,
-                "correlationID" to java.util.UUID.randomUUID().toString()
+                "correlationID" to java.util.UUID.randomUUID().toString(),
             )
 
             // Call the endpoint to trigger automatic linting
@@ -134,11 +130,8 @@ class PrintScriptServiceConnector(
                 .bodyToMono(String::class.java)
                 .onErrorComplete() // Don't fail snippet creation/update if linting fails
                 .block()
-
-            println("✅ [AUTO-LINT] Triggered automatic linting for snippet $snippetId")
         } catch (e: Exception) {
             // Log but don't fail - automatic linting is optional
-            println("⚠️ [AUTO-LINT] Could not trigger automatic linting for snippet $snippetId: ${e.message}")
         }
     }
 
@@ -150,7 +143,7 @@ class PrintScriptServiceConnector(
                 "userId" to userId,
                 "id" to snippetId,
                 "content" to content,
-                "correlationID" to java.util.UUID.randomUUID().toString()
+                "correlationID" to java.util.UUID.randomUUID().toString(),
             )
 
             // Call the endpoint to trigger automatic testing
@@ -162,11 +155,8 @@ class PrintScriptServiceConnector(
                 .bodyToMono(String::class.java)
                 .onErrorComplete() // Don't fail snippet creation/update if testing fails
                 .block()
-
-            println("✅ [AUTO-TEST] Triggered automatic testing for snippet $snippetId")
         } catch (e: Exception) {
             // Log but don't fail - automatic testing is optional
-            println("⚠️ [AUTO-TEST] Could not trigger automatic testing for snippet $snippetId: ${e.message}")
         }
     }
 }
