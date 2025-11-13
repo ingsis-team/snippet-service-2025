@@ -114,9 +114,77 @@ class PermissionServiceConnector(
             hasWrite
         } catch (e: Exception) {
             // In case of error, deny write access (fail-secure approach)
-            e.printStackTrace()
             logger.warn("Could not check write permission for snippetId: {}, denying access. Error: {}", snippetId, e.message)
             false
+        }
+    }
+
+    /**
+     * Obtiene todos los IDs de snippets a los que el usuario tiene acceso
+     * @param userId ID del usuario
+     * @return Lista de IDs de snippets permitidos
+     */
+    fun getUserPermittedSnippets(userId: String): List<Long> {
+        logger.debug("Fetching all permitted snippets for user: {}", userId)
+
+        return try {
+            val permissions = client.get()
+                .uri("/api/permissions/user/$userId")
+                .retrieve()
+                .bodyToFlux(PermissionResponse::class.java)
+                .collectList()
+                .block() ?: emptyList()
+
+            val snippetIds = permissions.map { it.snippetId }
+            logger.debug("User {} has access to {} snippets", userId, snippetIds.size)
+            snippetIds
+        } catch (e: Exception) {
+            logger.error("Error fetching permitted snippets for user {}: {}", userId, e.message, e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Elimina todos los permisos de un snippet
+     * @param snippetId ID del snippet
+     */
+    fun deleteSnippetPermissions(snippetId: Long) {
+        logger.debug("Deleting all permissions for snippet: {}", snippetId)
+
+        try {
+            // Primero obtener todos los permisos del snippet
+            val permissions = client.get()
+                .uri("/api/permissions/snippet/$snippetId")
+                .retrieve()
+                .bodyToFlux(PermissionResponse::class.java)
+                .collectList()
+                .block() ?: emptyList()
+
+            logger.debug("Found {} permissions to delete for snippet {}", permissions.size, snippetId)
+
+            // Eliminar cada permiso
+            permissions.forEach { permission ->
+                try {
+                    client.delete()
+                        .uri("/api/permissions/snippet/$snippetId/user/${permission.userId}")
+                        .retrieve()
+                        .bodyToMono(Void::class.java)
+                        .block()
+
+                    logger.debug("Deleted permission for user {} on snippet {}", permission.userId, snippetId)
+                } catch (e: Exception) {
+                    logger.warn(
+                        "Could not delete permission for user {} on snippet {}: {}",
+                        permission.userId,
+                        snippetId,
+                        e.message,
+                    )
+                }
+            }
+
+            logger.info("All permissions deleted for snippet: {}", snippetId)
+        } catch (e: Exception) {
+            logger.error("Error deleting permissions for snippet {}: {}", snippetId, e.message, e)
         }
     }
 }

@@ -44,6 +44,13 @@ class SnippetController(
     // Helper function to extract user ID from JWT or use test user
     private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
 
+    // Data class for success responses
+    data class SuccessResponse(
+        val success: Boolean,
+        val message: String,
+        val timestamp: String = java.time.LocalDateTime.now().toString(),
+    )
+
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(
         summary = "Crear un nuevo snippet mediante archivo",
@@ -244,7 +251,7 @@ class SnippetController(
     )
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "204", description = "Snippet eliminado exitosamente"),
+            ApiResponse(responseCode = "200", description = "Snippet eliminado exitosamente"),
             ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
             ApiResponse(responseCode = "403", description = "No eres el propietario de este snippet"),
             ApiResponse(responseCode = "404", description = "Snippet no encontrado"),
@@ -253,12 +260,17 @@ class SnippetController(
     fun deleteSnippet(
         @Parameter(description = "ID del snippet") @PathVariable id: Long,
         @AuthenticationPrincipal jwt: Jwt?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<SuccessResponse> {
         val userId = getUserId(jwt)
         logger.info("Deleting snippet {} by user: {}", id, userId)
         snippetService.deleteSnippet(id, userId)
         logger.info("Snippet {} deleted successfully", id)
-        return ResponseEntity.noContent().build()
+        return ResponseEntity.ok(
+            SuccessResponse(
+                success = true,
+                message = "Snippet con ID $id eliminado exitosamente",
+            ),
+        )
     }
 
     @PostMapping("/{id}/execute")

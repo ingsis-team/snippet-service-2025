@@ -121,16 +121,40 @@ class SnippetService(
 
     @Transactional(readOnly = true)
     fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
-        logger.debug("Fetching snippets for user: {}{}", userId, if (nameFilter != null) " with filter: $nameFilter" else "")
+        logger.debug("Fetching all snippets for user: {}{}", userId, if (nameFilter != null) " with filter: $nameFilter" else "")
 
-        // If name filter is provided, search by name (case-insensitive, partial search)
-        val snippets = if (nameFilter.isNullOrBlank()) {
-            snippetRepository.findByUserId(userId)
-        } else {
-            snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
+        // Obtener todos los snippets a los que el usuario tiene acceso desde Permission Service
+        val permittedSnippetIds = try {
+            permissionServiceConnector.getUserPermittedSnippets(userId)
+        } catch (e: Exception) {
+            logger.error("Error fetching permitted snippets for user {}: {}", userId, e.message, e)
+            // Fallback: solo mostrar snippets propios
+            emptyList<Long>()
         }
 
-        logger.debug("Found {} snippets for user: {}", snippets.size, userId)
+        logger.debug("User {} has access to {} snippets via permissions", userId, permittedSnippetIds.size)
+
+        // Buscar snippets: propios + compartidos
+        val snippets = if (permittedSnippetIds.isEmpty()) {
+            // Si no hay permisos desde el servicio, solo mostrar snippets propios
+            if (nameFilter.isNullOrBlank()) {
+                snippetRepository.findByUserId(userId)
+            } else {
+                snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
+            }
+        } else {
+            // Obtener snippets por IDs permitidos
+            val allPermittedSnippets = snippetRepository.findAllById(permittedSnippetIds)
+
+            // Aplicar filtro de nombre si existe
+            if (nameFilter.isNullOrBlank()) {
+                allPermittedSnippets
+            } else {
+                allPermittedSnippets.filter { it.name.contains(nameFilter, ignoreCase = true) }
+            }
+        }
+
+        logger.debug("Returning {} snippets for user: {}", snippets.size, userId)
         return snippets.map { toResponseDTO(it) }
     }
 
@@ -314,8 +338,14 @@ class SnippetService(
         snippetRepository.deleteById(id)
         logger.info("Snippet {} deleted successfully by user: {}", id, userId)
 
-        // TODO: Also delete permissions in Permission Service
-        // permissionServiceConnector.deletePermissions(id)
+        // Delete all permissions for this snippet in Permission Service
+        try {
+            permissionServiceConnector.deleteSnippetPermissions(id)
+            logger.debug("Permissions deleted for snippet: {}", id)
+        } catch (e: Exception) {
+            logger.warn("Could not delete permissions for snippet {}: {}", id, e.message)
+            // Log warning but don't fail snippet deletion
+        }
     }
 
     private fun validateSyntaxWithExternalService(content: String, language: String, version: String) {
