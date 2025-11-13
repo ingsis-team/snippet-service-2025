@@ -13,8 +13,8 @@ import org.springframework.web.reactive.function.client.WebClient
 @Service
 class Auth0Connector(
     private val webClient: WebClient.Builder,
-    @Value("\${auth0.domain}") private val auth0Domain: String,
-    @Value("\${auth0.management.token}") private val managementToken: String,
+    @Value("\${auth0.domain:}") private val auth0Domain: String,
+    @Value("\${auth0.management.token:}") private val managementToken: String,
 ) {
 
     private val client: WebClient by lazy {
