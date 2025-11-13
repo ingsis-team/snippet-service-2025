@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -38,6 +39,7 @@ class SnippetController(
     private val snippetService: SnippetService,
     private val shareService: ShareService,
 ) {
+    private val logger = LoggerFactory.getLogger(SnippetController::class.java)
 
     // Helper function to extract user ID from JWT or use test user
     private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
@@ -59,7 +61,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Creating snippet from file: '{}' for user: {}", createSnippetFileDTO.name, userId)
         val snippet = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
+        logger.info("Snippet created successfully with ID: {}", snippet.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -80,7 +84,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Creating snippet from editor: '{}' for user: {}", createSnippetDTO.name, userId)
         val snippet = snippetService.createSnippet(createSnippetDTO, userId)
+        logger.info("Snippet created successfully with ID: {}", snippet.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -98,7 +104,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Fetching snippet with ID: {} for user: {}", id, userId)
         val snippet = snippetService.getSnippet(id, userId)
+        logger.debug("Snippet retrieved successfully: {}", id)
         return ResponseEntity.ok(snippet)
     }
 
@@ -116,7 +124,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
         val userId = getUserId(jwt)
+        logger.info("Fetching all snippets for user: {}{}", userId, if (name != null) " with filter: $name" else "")
         val snippets = snippetService.getAllSnippets(userId, name)
+        logger.info("Returning {} snippets", snippets.size)
         return ResponseEntity.ok(snippets)
     }
 
@@ -140,7 +150,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Updating snippet {} from file for user: {}", id, userId)
         val snippet = snippetService.updateSnippetFromFile(id, updateSnippetFileDTO, userId)
+        logger.info("Snippet {} updated successfully", id)
         return ResponseEntity.ok(snippet)
     }
 
@@ -164,7 +176,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Updating snippet {} from editor for user: {}", id, userId)
         val snippet = snippetService.updateSnippet(id, updateSnippetDTO, userId)
+        logger.info("Snippet {} updated successfully", id)
         return ResponseEntity.ok(snippet)
     }
 
@@ -185,7 +199,10 @@ class SnippetController(
         @RequestParam(required = false) search: String?,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<Auth0UserDTO>> {
+        val userId = getUserId(jwt)
+        logger.info("Fetching available users for user: {}{}", userId, if (search != null) " with filter: $search" else "")
         val users = shareService.getAvailableUsers(search)
+        logger.info("Returning {} available users", users.size)
         return ResponseEntity.ok(users)
     }
 
@@ -209,7 +226,14 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<ShareSnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info(
+            "Sharing snippet {} with user {} by owner: {}",
+            shareSnippetDTO.snippetId,
+            shareSnippetDTO.targetUserId,
+            userId,
+        )
         val response = shareService.shareSnippet(shareSnippetDTO, userId)
+        logger.info("Snippet {} shared successfully", shareSnippetDTO.snippetId)
         return ResponseEntity.ok(response)
     }
 
@@ -231,7 +255,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Void> {
         val userId = getUserId(jwt)
+        logger.info("Deleting snippet {} by user: {}", id, userId)
         snippetService.deleteSnippet(id, userId)
+        logger.info("Snippet {} deleted successfully", id)
         return ResponseEntity.noContent().build()
     }
 
@@ -251,7 +277,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Executing snippet {} for user: {} with inputs: {}", id, userId, executeSnippetDTO.inputs)
         val result = snippetService.executeSnippet(id, executeSnippetDTO, userId)
+        logger.info("Snippet {} executed successfully with outputs: {}", id, result.outputs)
         return ResponseEntity.ok(result)
     }
 }

@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.config
 
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.cors.CorsConfiguration
@@ -8,9 +9,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 class CorsConfig {
+    private val logger = LoggerFactory.getLogger(CorsConfig::class.java)
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
+        logger.info("Configuring CORS for Snippet Service")
+
         val configuration = CorsConfiguration()
 
         // Allow requests from the frontend
@@ -34,6 +38,8 @@ class CorsConfig {
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
+
+        logger.info("CORS configured successfully for origins: {}", configuration.allowedOrigins)
 
         return source
     }
