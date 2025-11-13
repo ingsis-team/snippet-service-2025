@@ -68,6 +68,28 @@ class SnippetService(
             println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
         }
 
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${savedSnippet.id}: ${e.message}")
+        }
+
         return toResponseDTO(savedSnippet)
     }
 
@@ -166,6 +188,28 @@ class SnippetService(
         snippet.content = content
         val updatedSnippet = snippetRepository.save(snippet)
 
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${updatedSnippet.id}: ${e.message}")
+        }
+
         return toResponseDTO(updatedSnippet)
     }
 
@@ -190,6 +234,28 @@ class SnippetService(
         // Actualizar el contenido del snippet
         snippet.content = updateSnippetDTO.content
         val updatedSnippet = snippetRepository.save(snippet)
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+            println("Warning: Could not trigger automatic formatting/linting/testing for snippet ${updatedSnippet.id}: ${e.message}")
+        }
 
         return toResponseDTO(updatedSnippet)
     }

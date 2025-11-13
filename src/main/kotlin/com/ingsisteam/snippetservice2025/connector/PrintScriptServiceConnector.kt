@@ -85,4 +85,88 @@ class PrintScriptServiceConnector(
             )
         }
     }
+
+    fun triggerAutomaticFormatting(snippetId: String, userId: String, content: String) {
+        try {
+            // Create Snippet DTO for Redis stream - WebClient will serialize map to JSON
+            // The endpoint expects: { userId, id, content, correlationID }
+            val snippetDto = mapOf(
+                "userId" to userId,
+                "id" to snippetId,
+                "content" to content,
+                "correlationID" to java.util.UUID.randomUUID().toString()
+            )
+
+            // Call the endpoint to trigger automatic formatting
+            client.put()
+                .uri("/redis/format/snippet")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(snippetDto)
+                .retrieve()
+                .bodyToMono(String::class.java)
+                .onErrorComplete() // Don't fail snippet creation/update if formatting fails
+                .block()
+
+            println("✅ [AUTO-FORMAT] Triggered automatic formatting for snippet $snippetId")
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting is optional
+            println("⚠️ [AUTO-FORMAT] Could not trigger automatic formatting for snippet $snippetId: ${e.message}")
+        }
+    }
+
+    fun triggerAutomaticLinting(snippetId: String, userId: String, content: String) {
+        try {
+            // Create Snippet DTO for Redis stream - WebClient will serialize map to JSON
+            // The endpoint expects: { userId, id, content, correlationID }
+            val snippetDto = mapOf(
+                "userId" to userId,
+                "id" to snippetId,
+                "content" to content,
+                "correlationID" to java.util.UUID.randomUUID().toString()
+            )
+
+            // Call the endpoint to trigger automatic linting
+            client.put()
+                .uri("/redis/lint/snippet")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(snippetDto)
+                .retrieve()
+                .bodyToMono(String::class.java)
+                .onErrorComplete() // Don't fail snippet creation/update if linting fails
+                .block()
+
+            println("✅ [AUTO-LINT] Triggered automatic linting for snippet $snippetId")
+        } catch (e: Exception) {
+            // Log but don't fail - automatic linting is optional
+            println("⚠️ [AUTO-LINT] Could not trigger automatic linting for snippet $snippetId: ${e.message}")
+        }
+    }
+
+    fun triggerAutomaticTesting(snippetId: String, userId: String, content: String) {
+        try {
+            // Create Snippet DTO for Redis stream - WebClient will serialize map to JSON
+            // The endpoint expects: { userId, id, content, correlationID }
+            val snippetDto = mapOf(
+                "userId" to userId,
+                "id" to snippetId,
+                "content" to content,
+                "correlationID" to java.util.UUID.randomUUID().toString()
+            )
+
+            // Call the endpoint to trigger automatic testing
+            client.put()
+                .uri("/redis/test/snippet")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(snippetDto)
+                .retrieve()
+                .bodyToMono(String::class.java)
+                .onErrorComplete() // Don't fail snippet creation/update if testing fails
+                .block()
+
+            println("✅ [AUTO-TEST] Triggered automatic testing for snippet $snippetId")
+        } catch (e: Exception) {
+            // Log but don't fail - automatic testing is optional
+            println("⚠️ [AUTO-TEST] Could not trigger automatic testing for snippet $snippetId: ${e.message}")
+        }
+    }
 }
