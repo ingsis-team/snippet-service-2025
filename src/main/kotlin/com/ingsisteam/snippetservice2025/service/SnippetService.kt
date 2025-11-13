@@ -259,7 +259,9 @@ class SnippetService(
                 // Handle println()
                 if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
                     val content = trimmed.substring(8, trimmed.length - 2).trim()
-                    val output = if (content.startsWith("\"") && content.endsWith("\"")) {
+                    val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
+                        (content.startsWith("'") && content.endsWith("'"))
+                    ) {
                         content.substring(1, content.length - 1)
                     } else {
                         content

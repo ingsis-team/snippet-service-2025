@@ -180,8 +180,10 @@ class SnippetTestService(
             if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
                 // Extraer el valor entre paréntesis
                 val content = trimmed.substring(8, trimmed.length - 2).trim()
-                // Quitar comillas si es string literal
-                val output = if (content.startsWith("\"") && content.endsWith("\"")) {
+                // Quitar comillas si es string literal (double o single quotes)
+                val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
+                    (content.startsWith("'") && content.endsWith("'"))
+                ) {
                     content.substring(1, content.length - 1)
                 } else {
                     // Si no es string literal, podría ser una variable
