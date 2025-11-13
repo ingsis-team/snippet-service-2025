@@ -36,7 +36,6 @@ class PermissionServiceConnector(
                 .block()
         } catch (e: Exception) {
             // Log error but don't fail snippet creation
-            println("⚠️ [PERMISSION] Could not create permission for snippetId: $snippetId, error: ${e.message}")
             e.printStackTrace()
             null
         }
@@ -56,7 +55,6 @@ class PermissionServiceConnector(
                 .bodyToMono(PermissionCheckResponse::class.java)
                 .block() ?: PermissionCheckResponse(hasPermission = false, role = null)
         } catch (e: Exception) {
-            println("[PermissionServiceConnector] Error al verificar permisos: ${e.message}")
             throw RuntimeException("Error al verificar permisos: ${e.message}", e)
         }
     }
@@ -71,7 +69,6 @@ class PermissionServiceConnector(
             response?.hasPermission ?: false
         } catch (e: Exception) {
             // In case of error, allow access (fail-safe approach for now)
-            println("⚠️ [PERMISSION] Could not check permission for snippetId: $snippetId, error: ${e.message}")
             e.printStackTrace()
             true
         }
@@ -87,7 +84,6 @@ class PermissionServiceConnector(
             response ?: false
         } catch (e: Exception) {
             // In case of error, deny write access (fail-secure approach)
-            println("⚠️ [PERMISSION] Could not check write permission for snippetId: $snippetId, error: ${e.message}")
             e.printStackTrace()
             false
         }

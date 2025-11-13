@@ -50,10 +50,7 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets/$snippetId/tests] Received request to create test: ${createTestDTO.name}")
-        println("👤 [POST /api/snippets/$snippetId/tests] User ID: $userId")
         val test = snippetTestService.createTest(snippetId, createTestDTO, userId)
-        println("✅ [POST /api/snippets/$snippetId/tests] Test created successfully with ID: ${test.id}")
         return ResponseEntity.status(HttpStatus.CREATED).body(test)
     }
 
@@ -76,7 +73,6 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
-        println("📥 [GET /api/snippets/$snippetId/tests/$testId] User ID: $userId")
         val test = snippetTestService.getTest(snippetId, testId, userId)
         return ResponseEntity.ok(test)
     }
@@ -99,9 +95,7 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<TestResponseDTO>> {
         val userId = getUserId(jwt)
-        println("📥 [GET /api/snippets/$snippetId/tests] User ID: $userId")
         val tests = snippetTestService.getTestsBySnippet(snippetId, userId)
-        println("✅ [GET /api/snippets/$snippetId/tests] Returning ${tests.size} tests")
         return ResponseEntity.ok(tests)
     }
 
@@ -124,9 +118,7 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Void> {
         val userId = getUserId(jwt)
-        println("📥 [DELETE /api/snippets/$snippetId/tests/$testId] User ID: $userId")
         snippetTestService.deleteTest(snippetId, testId, userId)
-        println("✅ [DELETE /api/snippets/$snippetId/tests/$testId] Test deleted successfully")
         return ResponseEntity.noContent().build()
     }
 
@@ -149,9 +141,7 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Map<String, Any>> {
         val userId = getUserId(jwt)
-        println("📥 [POST /api/snippets/$snippetId/tests/$testId/execute] User ID: $userId")
         val result = snippetTestService.executeTest(snippetId, testId, userId)
-        println("✅ [POST /api/snippets/$snippetId/tests/$testId/execute] Test executed: ${if (result["passed"] as Boolean) "PASSED" else "FAILED"}")
         return ResponseEntity.ok(result)
     }
 }

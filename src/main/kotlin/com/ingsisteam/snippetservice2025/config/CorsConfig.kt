@@ -11,8 +11,6 @@ class CorsConfig {
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        println("🔧 [CORS] Configuring CORS for Snippet Service...")
-
         val configuration = CorsConfiguration()
 
         // Allow requests from the frontend
@@ -36,8 +34,6 @@ class CorsConfig {
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
-
-        println("✅ [CORS] CORS configured successfully for origins: ${configuration.allowedOrigins}")
 
         return source
     }
