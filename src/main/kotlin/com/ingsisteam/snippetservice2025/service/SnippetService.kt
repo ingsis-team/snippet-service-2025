@@ -29,19 +29,19 @@ class SnippetService(
             throw IllegalArgumentException("Ya existe un snippet con el nombre '${createSnippetFileDTO.name}'")
         }
 
-        // Validar que el archivo no esté vacío
+        // Validate that the file is not empty
         if (createSnippetFileDTO.file.isEmpty) {
             throw IllegalArgumentException("El archivo no puede estar vacío")
         }
 
-        // Leer el contenido del archivo
+        // Read the file content
         val content = try {
             String(createSnippetFileDTO.file.bytes, Charsets.UTF_8)
         } catch (e: Exception) {
             throw IllegalArgumentException("Error al leer el archivo: ${e.message}")
         }
 
-        // Delegar validación de sintaxis al PrintScript Service
+        // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(content, createSnippetFileDTO.language.name, createSnippetFileDTO.version)
 
         // Crear el snippet
@@ -56,7 +56,7 @@ class SnippetService(
 
         val savedSnippet = snippetRepository.save(snippet)
 
-        // Delegar creación de permisos al Permission Service
+        // Delegate permission creation to Permission Service
         try {
             permissionServiceConnector.createPermission(
                 snippetId = savedSnippet.id,
@@ -65,7 +65,27 @@ class SnippetService(
             )
         } catch (e: Exception) {
             // Log warning but don't fail snippet creation
-            println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
+        }
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content,
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
         }
 
         return toResponseDTO(savedSnippet)
@@ -86,7 +106,7 @@ class SnippetService(
 
     @Transactional(readOnly = true)
     fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
-        // Si hay filtro de nombre, buscar por nombre (case-insensitive, búsqueda parcial)
+        // If name filter is provided, search by name (case-insensitive, partial search)
         val snippets = if (nameFilter.isNullOrBlank()) {
             snippetRepository.findByUserId(userId)
         } else {
@@ -97,17 +117,17 @@ class SnippetService(
     }
 
     fun createSnippet(createSnippetDTO: CreateSnippetDTO, userId: String): SnippetResponseDTO {
-        // Verificar que no exista otro snippet con el mismo nombre para este usuario
+        // Verify that no other snippet with the same name exists for this user
         if (snippetRepository.existsByUserIdAndName(userId, createSnippetDTO.name)) {
             throw IllegalArgumentException("Ya existe un snippet con el nombre '${createSnippetDTO.name}'")
         }
 
-        // Validar que el contenido no esté vacío
+        // Validate that the content is not empty
         if (createSnippetDTO.content.isBlank()) {
             throw IllegalArgumentException("El contenido no puede estar vacío")
         }
 
-        // Delegar validación de sintaxis al PrintScript Service
+        // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(createSnippetDTO.content, createSnippetDTO.language.name, createSnippetDTO.version)
 
         // Crear el snippet
@@ -122,7 +142,7 @@ class SnippetService(
 
         val savedSnippet = snippetRepository.save(snippet)
 
-        // Delegar creación de permisos al Permission Service
+        // Delegate permission creation to Permission Service
         try {
             permissionServiceConnector.createPermission(
                 snippetId = savedSnippet.id,
@@ -131,86 +151,126 @@ class SnippetService(
             )
         } catch (e: Exception) {
             // Log warning but don't fail snippet creation
-            println("Warning: Could not create permission for snippet ${savedSnippet.id}: ${e.message}")
         }
 
         return toResponseDTO(savedSnippet)
     }
 
     fun updateSnippetFromFile(id: Long, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
-        // Verificar que el snippet existe
+        // Verify that the snippet exists
         val snippet = snippetRepository.findById(id).orElse(null)
             ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
 
-        // Verificar permisos de escritura con Permission Service
+        // Verify write permissions with Permission Service
         if (!permissionServiceConnector.hasWritePermission(id, userId)) {
             throw IllegalAccessException("No tienes permisos de escritura para este snippet")
         }
 
-        // Validar que el archivo no esté vacío
+        // Validate that the file is not empty
         if (updateSnippetFileDTO.file.isEmpty) {
             throw IllegalArgumentException("El archivo no puede estar vacío")
         }
 
-        // Leer el contenido del archivo
+        // Read the file content
         val content = try {
             String(updateSnippetFileDTO.file.bytes, Charsets.UTF_8)
         } catch (e: Exception) {
             throw IllegalArgumentException("Error al leer el archivo: ${e.message}")
         }
 
-        // Delegar validación de sintaxis al PrintScript Service
+        // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
 
-        // Actualizar el contenido del snippet
+        // Update the snippet content
         snippet.content = content
         val updatedSnippet = snippetRepository.save(snippet)
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+        }
 
         return toResponseDTO(updatedSnippet)
     }
 
     fun updateSnippet(id: Long, updateSnippetDTO: UpdateSnippetDTO, userId: String): SnippetResponseDTO {
-        // Verificar que el snippet existe
+        // Verify that the snippet exists
         val snippet = snippetRepository.findById(id).orElse(null)
             ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
 
-        // Verificar permisos de escritura con Permission Service
+        // Verify write permissions with Permission Service
         if (!permissionServiceConnector.hasWritePermission(id, userId)) {
             throw IllegalAccessException("No tienes permisos de escritura para este snippet")
         }
 
-        // Validar que el contenido no esté vacío
+        // Validate that the content is not empty
         if (updateSnippetDTO.content.isBlank()) {
             throw IllegalArgumentException("El contenido no puede estar vacío")
         }
 
-        // Delegar validación de sintaxis al PrintScript Service
+        // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(updateSnippetDTO.content, snippet.language.name, snippet.version)
 
-        // Actualizar el contenido del snippet
+        // Update the snippet content
         snippet.content = updateSnippetDTO.content
         val updatedSnippet = snippetRepository.save(snippet)
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = updatedSnippet.content,
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+        }
 
         return toResponseDTO(updatedSnippet)
     }
 
     fun deleteSnippet(id: Long, userId: String) {
-        // Verificar que el usuario sea OWNER (solo los owners pueden eliminar)
+        // Verify that the user is OWNER (only owners can delete)
         val permissionCheck = permissionServiceConnector.checkPermission(id, userId)
         if (!permissionCheck.hasPermission || permissionCheck.role != "OWNER") {
             throw IllegalAccessException("Solo el propietario puede eliminar este snippet")
         }
 
-        // Verificar que el snippet existe antes de eliminar
+        // Verify that the snippet exists before deleting
         if (!snippetRepository.existsById(id)) {
             throw NoSuchElementException("Snippet con ID $id no encontrado")
         }
 
-        // Eliminar el snippet
+        // Delete the snippet
         snippetRepository.deleteById(id)
-        println("✅ [DELETE] Snippet $id eliminado por usuario $userId")
 
-        // TODO: También eliminar permisos en Permission Service
+        // TODO: Also delete permissions in Permission Service
         // permissionServiceConnector.deletePermissions(id)
     }
 
@@ -234,9 +294,7 @@ class SnippetService(
         executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
         userId: String,
     ): com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO {
-        println("🚀 [EXECUTE] Executing snippet $id for user $userId")
-
-        // Verificar que el snippet existe
+        // Verify that the snippet exists
         val snippet = snippetRepository.findById(id).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $id no encontrado")
 
@@ -259,31 +317,27 @@ class SnippetService(
                 // Handle println()
                 if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
                     val content = trimmed.substring(8, trimmed.length - 2).trim()
-                    val output = if (content.startsWith("\"") && content.endsWith("\"")) {
+                    val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
+                        (content.startsWith("'") && content.endsWith("'"))
+                    ) {
                         content.substring(1, content.length - 1)
                     } else {
                         content
                     }
                     outputs.add(output)
-                    println("📤 [OUTPUT] $output")
                 }
 
                 // Handle readInput()
                 if (trimmed.contains("readInput(")) {
                     if (inputIndex < executeSnippetDTO.inputs.size) {
-                        val input = executeSnippetDTO.inputs[inputIndex]
-                        println("📥 [INPUT] Provided: $input")
                         inputIndex++
                     } else {
                         errors.add("Input required but not provided at line: $line")
                     }
                 }
             }
-
-            println("✅ [EXECUTE] Execution completed with ${outputs.size} outputs")
         } catch (e: Exception) {
             errors.add("Execution error: ${e.message}")
-            println("❌ [EXECUTE] Error: ${e.message}")
         }
 
         return com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO(

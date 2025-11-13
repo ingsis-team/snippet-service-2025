@@ -23,9 +23,7 @@ class ShareService(
      * @return Lista de usuarios de Auth0
      */
     fun getAvailableUsers(search: String?): List<Auth0UserDTO> {
-        println("[ShareService] Obteniendo usuarios disponibles${if (search != null) " con filtro: $search" else ""}")
         val users = auth0Connector.getUsers(search)
-        println("[ShareService] Se encontraron ${users.size} usuarios")
         return users
     }
 
@@ -38,8 +36,6 @@ class ShareService(
      * @throws PermissionDeniedException si el usuario no es owner del snippet
      */
     fun shareSnippet(shareSnippetDTO: ShareSnippetDTO, currentUserId: String): ShareSnippetResponseDTO {
-        println("[ShareService] Usuario $currentUserId intenta compartir snippet ${shareSnippetDTO.snippetId} con ${shareSnippetDTO.targetUserId}")
-
         // Verificar que el usuario actual sea owner del snippet
         val permissionCheck = permissionServiceConnector.checkPermission(
             snippetId = shareSnippetDTO.snippetId,
@@ -47,13 +43,10 @@ class ShareService(
         )
 
         if (!permissionCheck.hasPermission || permissionCheck.role != "OWNER") {
-            println("[ShareService] Usuario $currentUserId no es owner del snippet ${shareSnippetDTO.snippetId}")
             throw PermissionDeniedException(
                 "No tienes permisos de owner sobre este snippet. Solo el propietario puede compartir snippets.",
             )
         }
-
-        println("[ShareService] Usuario $currentUserId verificado como owner del snippet ${shareSnippetDTO.snippetId}")
 
         // Verificar si el usuario ya tiene permisos sobre este snippet
         val existingPermission = permissionServiceConnector.checkPermission(
@@ -62,7 +55,6 @@ class ShareService(
         )
 
         if (existingPermission.hasPermission) {
-            println("[ShareService] Usuario ${shareSnippetDTO.targetUserId} ya tiene permisos sobre el snippet ${shareSnippetDTO.snippetId} (rol: ${existingPermission.role})")
             return ShareSnippetResponseDTO(
                 snippetId = shareSnippetDTO.snippetId,
                 sharedWithUserId = shareSnippetDTO.targetUserId,
@@ -79,11 +71,8 @@ class ShareService(
         )
 
         if (permissionResponse == null) {
-            println("[ShareService] Error al crear permiso para usuario ${shareSnippetDTO.targetUserId}")
             throw RuntimeException("No se pudo crear el permiso de lectura para el usuario")
         }
-
-        println("[ShareService] Snippet ${shareSnippetDTO.snippetId} compartido exitosamente con ${shareSnippetDTO.targetUserId}")
 
         return ShareSnippetResponseDTO(
             snippetId = permissionResponse.snippetId,

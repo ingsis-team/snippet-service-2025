@@ -7,15 +7,15 @@ import org.springframework.stereotype.Repository
 @Repository
 interface SnippetRepository : JpaRepository<Snippet, Long> {
 
-    // Buscar snippets por usuario
+    // Find snippets by user
     fun findByUserId(userId: String): List<Snippet>
 
-    // Buscar snippets por usuario y filtro de nombre (case-insensitive, búsqueda parcial)
+    // Find snippets by user and name filter (case-insensitive, partial search)
     fun findByUserIdAndNameContainingIgnoreCase(userId: String, name: String): List<Snippet>
 
-    // Verificar si existe un snippet con ese nombre para el usuario
+    // Check if a snippet with that name exists for the user
     fun existsByUserIdAndName(userId: String, name: String): Boolean
 
-    // Buscar snippet específico por usuario e id
+    // Find specific snippet by user and id
     fun findByIdAndUserId(id: Long, userId: String): Snippet?
 }

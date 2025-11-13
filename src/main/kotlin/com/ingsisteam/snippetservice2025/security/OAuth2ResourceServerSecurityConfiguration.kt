@@ -17,9 +17,9 @@ import org.springframework.security.web.SecurityFilterChain
 @Configuration
 @EnableWebSecurity
 class OAuth2ResourceServerSecurityConfiguration(
-    @Value("\${auth0.audience}")
+    @Value("\${auth0.audience:}")
     val audience: String,
-    @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     val issuer: String,
 ) {
     @Bean
@@ -51,7 +51,10 @@ class OAuth2ResourceServerSecurityConfiguration(
     }
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
+    fun jwtDecoder(): JwtDecoder? {
+        if (issuer.isNullOrBlank()) {
+            return null
+        }
         val jwtDecoder = NimbusJwtDecoder.withIssuerLocation(issuer).build()
         val audienceValidator: OAuth2TokenValidator<Jwt> = AudienceValidator(audience)
         val withIssuer: OAuth2TokenValidator<Jwt> = JwtValidators.createDefaultWithIssuer(issuer)

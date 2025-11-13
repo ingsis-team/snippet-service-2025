@@ -7,12 +7,12 @@ import org.springframework.stereotype.Repository
 @Repository
 interface SnippetTestRepository : JpaRepository<SnippetTest, Long> {
 
-    // Buscar todos los tests de un snippet
+    // Find all tests for a snippet
     fun findBySnippetId(snippetId: Long): List<SnippetTest>
 
-    // Buscar un test específico por snippet e id
+    // Find a specific test by snippet and id
     fun findByIdAndSnippetId(id: Long, snippetId: Long): SnippetTest?
 
-    // Verificar si existe un test con ese nombre para el snippet
+    // Check if a test with that name exists for the snippet
     fun existsBySnippetIdAndName(snippetId: Long, name: String): Boolean
 }
