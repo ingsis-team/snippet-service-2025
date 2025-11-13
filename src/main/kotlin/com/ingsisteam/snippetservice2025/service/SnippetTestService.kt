@@ -143,33 +143,33 @@ class SnippetTestService(
 
     @Suppress("UNUSED_PARAMETER")
     private fun executeSnippetWithInputs(snippet: Snippet, inputs: List<String>): List<String> {
-        // Modificar el código del snippet para inyectar los inputs como variables
-        // Por simplicidad, ejecutaremos el snippet y capturaremos los outputs de println
+        // Modify the snippet code to inject inputs as variables
+        // For simplicity, we'll execute the snippet and capture println outputs
 
-        // TODO: En una implementación completa, necesitaríamos:
-        // 1. Parsear el código para encontrar llamadas a readInput()
-        // 2. Reemplazarlas con los valores de inputs
-        // 3. Ejecutar y capturar los outputs de println()
+        // TODO: In a complete implementation, we would need:
+        // 1. Parse the code to find readInput() calls
+        // 2. Replace them with input values
+        // 3. Execute and capture println() outputs
 
-        // Por ahora, simulamos una ejecución simple:
-        // Asumimos que el snippet solo tiene println() sin readInput()
+        // For now, we simulate a simple execution:
+        // We assume the snippet only has println() without readInput()
         val outputs = mutableListOf<String>()
 
-        // Dividir el contenido en líneas y buscar println()
+        // Split content into lines and search for println()
         val lines = snippet.content.lines()
         for (line in lines) {
             val trimmed = line.trim()
             if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
-                // Extraer el valor entre paréntesis
+                // Extract the value between parentheses
                 val content = trimmed.substring(8, trimmed.length - 2).trim()
-                // Quitar comillas si es string literal (double o single quotes)
+                // Remove quotes if it's a string literal (double or single quotes)
                 val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
                     (content.startsWith("'") && content.endsWith("'"))
                 ) {
                     content.substring(1, content.length - 1)
                 } else {
-                    // Si no es string literal, podría ser una variable
-                    // Por ahora solo manejamos literales
+                    // If it's not a string literal, it could be a variable
+                    // For now we only handle literals
                     content
                 }
                 outputs.add(output)

@@ -93,7 +93,7 @@ class Auth0Connector(
             ),
         )
 
-        // Filtrar por búsqueda si se proporciona
+        // Filter by search if provided
         return if (search.isNullOrBlank()) {
             allMockUsers
         } else {
