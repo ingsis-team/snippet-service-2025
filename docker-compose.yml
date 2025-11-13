@@ -3,7 +3,7 @@ version: '3.9'
 services:
   api:
     container_name: snippet-api-${ENVIRONMENT}
-    image: ghcr.io/ingsis-team/snippet-service-2025:${ENVIRONMENT}
+    #image: ghcr.io/ingsis-team/snippet-service-2025:${ENVIRONMENT}
     build:
       context: .
     ports:
@@ -58,4 +58,5 @@ networks:
     external: true
   printscript-service-2025_default:
     external: true
+
 

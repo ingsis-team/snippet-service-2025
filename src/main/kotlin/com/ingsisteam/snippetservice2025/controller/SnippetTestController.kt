@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -26,9 +27,17 @@ import org.springframework.web.bind.annotation.RestController
 class SnippetTestController(
     private val snippetTestService: SnippetTestService,
 ) {
+    private val logger = LoggerFactory.getLogger(SnippetTestController::class.java)
 
     // Helper function to extract user ID from JWT or use test user
     private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
+
+    // Data class for success responses
+    data class SuccessResponse(
+        val success: Boolean,
+        val message: String,
+        val timestamp: String = java.time.LocalDateTime.now().toString(),
+    )
 
     @PostMapping
     @Operation(
@@ -50,7 +59,9 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Creating test '{}' for snippet {} by user: {}", createTestDTO.name, snippetId, userId)
         val test = snippetTestService.createTest(snippetId, createTestDTO, userId)
+        logger.info("Test created successfully with ID: {}", test.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(test)
     }
 
@@ -73,7 +84,9 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
+        logger.info("Fetching test {} for snippet {} by user: {}", testId, snippetId, userId)
         val test = snippetTestService.getTest(snippetId, testId, userId)
+        logger.debug("Test {} retrieved successfully", testId)
         return ResponseEntity.ok(test)
     }
 
@@ -95,7 +108,9 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<TestResponseDTO>> {
         val userId = getUserId(jwt)
+        logger.info("Fetching all tests for snippet {} by user: {}", snippetId, userId)
         val tests = snippetTestService.getTestsBySnippet(snippetId, userId)
+        logger.info("Returning {} tests for snippet {}", tests.size, snippetId)
         return ResponseEntity.ok(tests)
     }
 
@@ -106,7 +121,7 @@ class SnippetTestController(
     )
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "204", description = "Test eliminado exitosamente"),
+            ApiResponse(responseCode = "200", description = "Test eliminado exitosamente"),
             ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
             ApiResponse(responseCode = "403", description = "Sin permisos para eliminar tests de este snippet"),
             ApiResponse(responseCode = "404", description = "Test o snippet no encontrado"),
@@ -116,10 +131,17 @@ class SnippetTestController(
         @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
         @Parameter(description = "ID del test") @PathVariable testId: Long,
         @AuthenticationPrincipal jwt: Jwt?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<SuccessResponse> {
         val userId = getUserId(jwt)
+        logger.info("Deleting test {} from snippet {} by user: {}", testId, snippetId, userId)
         snippetTestService.deleteTest(snippetId, testId, userId)
-        return ResponseEntity.noContent().build()
+        logger.info("Test {} deleted successfully", testId)
+        return ResponseEntity.ok(
+            SuccessResponse(
+                success = true,
+                message = "Test con ID $testId eliminado exitosamente del snippet $snippetId",
+            ),
+        )
     }
 
     @PostMapping("/{testId}/execute")
@@ -141,7 +163,9 @@ class SnippetTestController(
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Map<String, Any>> {
         val userId = getUserId(jwt)
+        logger.info("Executing test {} for snippet {} by user: {}", testId, snippetId, userId)
         val result = snippetTestService.executeTest(snippetId, testId, userId)
+        logger.info("Test {} executed: {}", testId, if (result["passed"] as Boolean) "PASSED" else "FAILED")
         return ResponseEntity.ok(result)
     }
 }

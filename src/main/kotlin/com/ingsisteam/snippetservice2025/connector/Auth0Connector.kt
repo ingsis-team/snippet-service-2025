@@ -2,6 +2,7 @@
 package com.ingsisteam.snippetservice2025.connector
 
 import com.ingsisteam.snippetservice2025.model.dto.external.Auth0UserDTO
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
@@ -16,6 +17,7 @@ class Auth0Connector(
     @Value("\${auth0.domain:}") private val auth0Domain: String,
     @Value("\${auth0.management.token:}") private val managementToken: String,
 ) {
+    private val logger = LoggerFactory.getLogger(Auth0Connector::class.java)
 
     private val client: WebClient by lazy {
         webClient.baseUrl("https://$auth0Domain").build()
@@ -29,8 +31,11 @@ class Auth0Connector(
     fun getUsers(search: String? = null): List<Auth0UserDTO> {
         // Si no hay token de Auth0, retornar usuarios mock para testing
         if (managementToken.isBlank()) {
+            logger.warn("No Auth0 management token configured, returning mock users")
             return getMockUsers(search)
         }
+
+        logger.debug("Fetching users from Auth0{}", if (search != null) " with search: $search" else "")
 
         return try {
             val uri = if (search.isNullOrBlank()) {
@@ -39,14 +44,18 @@ class Auth0Connector(
                 "/api/v2/users?q=$search&search_engine=v3&per_page=100"
             }
 
-            client.get()
+            val users = client.get()
                 .uri(uri)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $managementToken")
                 .retrieve()
                 .bodyToFlux(Auth0UserDTO::class.java)
                 .collectList()
                 .block() ?: emptyList()
+
+            logger.debug("Fetched {} users from Auth0", users.size)
+            users
         } catch (e: Exception) {
+            logger.error("Error fetching users from Auth0: {}, returning mock users", e.message, e)
             return getMockUsers(search)
         }
     }
@@ -55,6 +64,8 @@ class Auth0Connector(
      * Retorna una lista de usuarios mock para testing cuando Auth0 no está configurado
      */
     private fun getMockUsers(search: String? = null): List<Auth0UserDTO> {
+        logger.debug("Returning mock users{}", if (search != null) " with filter: $search" else "")
+
         val allMockUsers = listOf(
             Auth0UserDTO(
                 userId = "test-user-1@example.com",
@@ -99,8 +110,7 @@ class Auth0Connector(
         } else {
             allMockUsers.filter {
                 it.name?.contains(search, ignoreCase = true) == true ||
-                    it.email?.contains(search, ignoreCase = true) == true ||
-                    it.nickname?.contains(search, ignoreCase = true) == true
+                    it.email?.contains(search, ignoreCase = true) == true
             }
         }
     }

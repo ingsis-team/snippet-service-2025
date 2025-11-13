@@ -11,6 +11,7 @@ import com.ingsisteam.snippetservice2025.model.entity.Snippet
 import com.ingsisteam.snippetservice2025.model.entity.SnippetTest
 import com.ingsisteam.snippetservice2025.repository.SnippetRepository
 import com.ingsisteam.snippetservice2025.repository.SnippetTestRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -22,19 +23,24 @@ class SnippetTestService(
     private val permissionServiceConnector: PermissionServiceConnector,
     private val printScriptServiceConnector: PrintScriptServiceConnector,
 ) {
+    private val logger = LoggerFactory.getLogger(SnippetTestService::class.java)
 
     fun createTest(snippetId: Long, createTestDTO: CreateTestDTO, userId: String): TestResponseDTO {
+        logger.info("Creating test '{}' for snippet {} by user: {}", createTestDTO.name, snippetId, userId)
+
         // Verificar que el snippet existe
         snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de escritura
         if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to create tests on snippet {}", userId, snippetId)
             throw PermissionDeniedException("No tienes permisos para crear tests en este snippet")
         }
 
         // Verificar que no exista otro test con el mismo nombre para este snippet
         if (snippetTestRepository.existsBySnippetIdAndName(snippetId, createTestDTO.name)) {
+            logger.warn("Duplicate test name '{}' for snippet {}", createTestDTO.name, snippetId)
             throw IllegalArgumentException("Ya existe un test con el nombre '${createTestDTO.name}' para este snippet")
         }
 
@@ -48,18 +54,22 @@ class SnippetTestService(
         )
 
         val savedTest = snippetTestRepository.save(test)
+        logger.info("Test created successfully: ID={}, name='{}', snippetId={}", savedTest.id, savedTest.name, snippetId)
 
         return toResponseDTO(savedTest)
     }
 
     @Transactional(readOnly = true)
     fun getTest(snippetId: Long, testId: Long, userId: String): TestResponseDTO {
+        logger.debug("Fetching test {} for snippet {} by user: {}", testId, snippetId, userId)
+
         // Verificar que el snippet existe
         snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de lectura
         if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to view tests on snippet {}", userId, snippetId)
             throw PermissionDeniedException("No tienes permisos para ver tests de este snippet")
         }
 
@@ -67,33 +77,41 @@ class SnippetTestService(
         val test = snippetTestRepository.findByIdAndSnippetId(testId, snippetId)
             ?: throw TestNotFoundException("Test con ID $testId no encontrado para el snippet $snippetId")
 
+        logger.debug("Test {} retrieved successfully", testId)
         return toResponseDTO(test)
     }
 
     @Transactional(readOnly = true)
     fun getTestsBySnippet(snippetId: Long, userId: String): List<TestResponseDTO> {
+        logger.debug("Fetching all tests for snippet {} by user: {}", snippetId, userId)
+
         // Verificar que el snippet existe
         snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de lectura
         if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to view tests on snippet {}", userId, snippetId)
             throw PermissionDeniedException("No tienes permisos para ver tests de este snippet")
         }
 
         // Obtener todos los tests del snippet
         val tests = snippetTestRepository.findBySnippetId(snippetId)
+        logger.debug("Found {} tests for snippet {}", tests.size, snippetId)
 
         return tests.map { toResponseDTO(it) }
     }
 
     fun deleteTest(snippetId: Long, testId: Long, userId: String) {
+        logger.info("Deleting test {} from snippet {} by user: {}", testId, snippetId, userId)
+
         // Verificar que el snippet existe
         snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de escritura
         if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to delete tests on snippet {}", userId, snippetId)
             throw PermissionDeniedException("No tienes permisos para eliminar tests de este snippet")
         }
 
@@ -103,15 +121,19 @@ class SnippetTestService(
 
         // Eliminar el test
         snippetTestRepository.delete(test)
+        logger.info("Test {} deleted successfully", testId)
     }
 
     fun executeTest(snippetId: Long, testId: Long, userId: String): Map<String, Any> {
+        logger.info("Executing test {} for snippet {} by user: {}", testId, snippetId, userId)
+
         // Verificar que el snippet existe y obtenerlo
         val snippet = snippetRepository.findById(snippetId).orElse(null)
             ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
 
         // Verificar permisos de lectura
         if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to execute tests on snippet {}", userId, snippetId)
             throw PermissionDeniedException("No tienes permisos para ejecutar tests de este snippet")
         }
 
@@ -119,10 +141,13 @@ class SnippetTestService(
         val test = snippetTestRepository.findByIdAndSnippetId(testId, snippetId)
             ?: throw TestNotFoundException("Test con ID $testId no encontrado para el snippet $snippetId")
 
+        logger.debug("Running snippet with {} inputs, expecting {} outputs", test.inputs.size, test.expectedOutputs.size)
+
         // Ejecutar el snippet con el PrintScript service
         val executionResult = try {
             executeSnippetWithInputs(snippet, test.inputs)
         } catch (e: Exception) {
+            logger.error("Test {} execution failed: {}", testId, e.message, e)
             return mapOf(
                 "passed" to false,
                 "expected" to test.expectedOutputs,
@@ -133,6 +158,7 @@ class SnippetTestService(
 
         // Comparar los outputs
         val passed = compareOutputs(test.expectedOutputs, executionResult)
+        logger.info("Test {} execution completed: {}", testId, if (passed) "PASSED" else "FAILED")
 
         return mapOf(
             "passed" to passed,
@@ -181,11 +207,13 @@ class SnippetTestService(
 
     private fun compareOutputs(expected: List<String>, actual: List<String>): Boolean {
         if (expected.size != actual.size) {
+            logger.warn("Size mismatch: expected {}, got {}", expected.size, actual.size)
             return false
         }
 
         for (i in expected.indices) {
             if (expected[i] != actual[i]) {
+                logger.warn("Output mismatch at index {}: expected '{}', got '{}'", i, expected[i], actual[i])
                 return false
             }
         }
