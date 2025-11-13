@@ -4,4 +4,3 @@ data class ExecuteSnippetResponseDTO(
     val outputs: List<String>,
     val errors: List<String> = emptyList(),
 )
-
