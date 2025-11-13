@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationError
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResponse
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResult
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
@@ -14,6 +15,7 @@ class PrintScriptServiceConnector(
     private val webClient: WebClient.Builder,
     @Value("\${printscript.url}") private val printScriptUrl: String,
 ) {
+    private val logger = LoggerFactory.getLogger(PrintScriptServiceConnector::class.java)
 
     private val client: WebClient by lazy {
         webClient.baseUrl(printScriptUrl).build()
@@ -22,6 +24,8 @@ class PrintScriptServiceConnector(
     private val objectMapper = ObjectMapper()
 
     fun validateSnippet(content: String, language: String, version: String): ValidationResponse {
+        logger.debug("Validating snippet with PrintScript service: language={}, version={}", language, version)
+
         return try {
             // PrintScript service expects just the content string as @RequestBody String
             // We send it as a JSON string value (content wrapped in quotes)
@@ -43,6 +47,7 @@ class PrintScriptServiceConnector(
 
             // Convert ValidationResult to ValidationResponse
             if (result == null) {
+                logger.error("Validation service returned null")
                 ValidationResponse(
                     isValid = false,
                     errors = listOf(
@@ -55,8 +60,10 @@ class PrintScriptServiceConnector(
                     ),
                 )
             } else if (result.isValid) {
+                logger.debug("Syntax validation passed")
                 ValidationResponse(isValid = true, errors = null)
             } else {
+                logger.warn("Syntax validation failed: {} at line {}, column {}", result.rule, result.line, result.column)
                 ValidationResponse(
                     isValid = false,
                     errors = listOf(
@@ -71,6 +78,7 @@ class PrintScriptServiceConnector(
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            logger.error("Error connecting to PrintScript validation service: {}", e.message, e)
             ValidationResponse(
                 isValid = false,
                 errors = listOf(
