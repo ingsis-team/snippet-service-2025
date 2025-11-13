@@ -8,8 +8,7 @@ data class CreateSnippetDTO(
     @field:NotBlank(message = "Snippet name cannot be null or empty")
     val name: String,
 
-    @field:NotBlank(message = "Snippet description cannot be null or empty")
-    val description: String,
+    val description: String = "", // Optional description, defaults to empty string
 
     @field:NotNull(message = "Snippet language cannot be null")
     val language: SnippetLanguage,

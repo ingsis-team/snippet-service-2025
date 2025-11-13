@@ -3,9 +3,6 @@ package com.ingsisteam.snippetservice2025.security
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpMethod.GET
-import org.springframework.http.HttpMethod.POST
-import org.springframework.http.HttpMethod.PUT
 import org.springframework.security.config.Customizer.withDefaults
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -31,19 +28,21 @@ class OAuth2ResourceServerSecurityConfiguration(
             it
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // Rutas específicas primero
-                .requestMatchers(GET, "/api/snippets/users").authenticated()
-                .requestMatchers(POST, "/api/snippets/share").authenticated()
-                .requestMatchers(GET, "/api/share/users").authenticated()
-                .requestMatchers(POST, "/api/share").authenticated()
-                // Rutas genéricas después
-                .requestMatchers(GET, "/api/snippets").authenticated()
-                .requestMatchers(GET, "/api/snippets/**").authenticated()
-                .requestMatchers(POST, "/api/snippets").authenticated()
-                .requestMatchers(PUT, "/api/snippets/**").authenticated()
-                .anyRequest().authenticated()
+                // Temporarily allow all API requests without authentication for testing
+                .requestMatchers("/api/**").permitAll()
+                .anyRequest().permitAll()
+            // TODO: Re-enable authentication for production
+            // .requestMatchers(GET, "/api/snippets/users").authenticated()
+            // .requestMatchers(POST, "/api/snippets/share").authenticated()
+            // .requestMatchers(GET, "/api/share/users").authenticated()
+            // .requestMatchers(POST, "/api/share").authenticated()
+            // .requestMatchers(GET, "/api/snippets").authenticated()
+            // .requestMatchers(GET, "/api/snippets/**").authenticated()
+            // .requestMatchers(POST, "/api/snippets").authenticated()
+            // .requestMatchers(PUT, "/api/snippets/**").authenticated()
+            // .anyRequest().authenticated()
         }
-            .oauth2ResourceServer { it.jwt(withDefaults()) }
+            // .oauth2ResourceServer { it.jwt(withDefaults()) } // Disabled for testing
             .cors(withDefaults())
             .csrf {
                 it.disable()

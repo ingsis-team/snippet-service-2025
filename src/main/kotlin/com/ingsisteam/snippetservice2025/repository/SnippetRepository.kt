@@ -10,6 +10,9 @@ interface SnippetRepository : JpaRepository<Snippet, Long> {
     // Buscar snippets por usuario
     fun findByUserId(userId: String): List<Snippet>
 
+    // Buscar snippets por usuario y filtro de nombre (case-insensitive, búsqueda parcial)
+    fun findByUserIdAndNameContainingIgnoreCase(userId: String, name: String): List<Snippet>
+
     // Verificar si existe un snippet con ese nombre para el usuario
     fun existsByUserIdAndName(userId: String, name: String): Boolean
 

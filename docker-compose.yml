@@ -14,8 +14,8 @@ services:
       DB_NAME: ${DB_NAME}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      PERMISSION_URL: http://permission-api-dev:8081
-      PRINTSCRIPT_URL: http://printscript-api-dev:8080
+      PERMISSION_URL: ${PERMISSION_URL}
+      PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       AUTH_SERVER_URI: ${AUTH_SERVER_URI}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}

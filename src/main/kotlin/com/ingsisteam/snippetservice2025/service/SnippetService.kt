@@ -83,10 +83,15 @@ class SnippetService(
     }
 
     @Transactional(readOnly = true)
-    fun getAllSnippets(userId: String): List<SnippetResponseDTO> {
-        // Por ahora retornamos todos los snippets del usuario
-        // En el futuro se podría consultar Permission Service para filtrar por permisos
-        return snippetRepository.findByUserId(userId).map { toResponseDTO(it) }
+    fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
+        // Si hay filtro de nombre, buscar por nombre (case-insensitive, búsqueda parcial)
+        val snippets = if (nameFilter.isNullOrBlank()) {
+            snippetRepository.findByUserId(userId)
+        } else {
+            snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
+        }
+
+        return snippets.map { toResponseDTO(it) }
     }
 
     fun createSnippet(createSnippetDTO: CreateSnippetDTO, userId: String): SnippetResponseDTO {
@@ -185,6 +190,26 @@ class SnippetService(
         val updatedSnippet = snippetRepository.save(snippet)
 
         return toResponseDTO(updatedSnippet)
+    }
+
+    fun deleteSnippet(id: Long, userId: String) {
+        // Verificar que el usuario sea OWNER (solo los owners pueden eliminar)
+        val permissionCheck = permissionServiceConnector.checkPermission(id, userId)
+        if (!permissionCheck.hasPermission || permissionCheck.role != "OWNER") {
+            throw IllegalAccessException("Solo el propietario puede eliminar este snippet")
+        }
+
+        // Verificar que el snippet existe antes de eliminar
+        if (!snippetRepository.existsById(id)) {
+            throw NoSuchElementException("Snippet con ID $id no encontrado")
+        }
+
+        // Eliminar el snippet
+        snippetRepository.deleteById(id)
+        println("✅ [DELETE] Snippet $id eliminado por usuario $userId")
+
+        // TODO: También eliminar permisos en Permission Service
+        // permissionServiceConnector.deletePermissions(id)
     }
 
     private fun validateSyntaxWithExternalService(content: String, language: String, version: String) {
