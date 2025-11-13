@@ -2,6 +2,8 @@ package com.ingsisteam.snippetservice2025.service
 
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
+import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
+import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
 import com.ingsisteam.snippetservice2025.exception.SyntaxValidationException
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
@@ -224,6 +226,70 @@ class SnippetService(
                 message = firstError.message,
             )
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun executeSnippet(
+        id: Long,
+        executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
+        userId: String,
+    ): com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO {
+        println("🚀 [EXECUTE] Executing snippet $id for user $userId")
+
+        // Verificar que el snippet existe
+        val snippet = snippetRepository.findById(id).orElse(null)
+            ?: throw SnippetNotFoundException("Snippet con ID $id no encontrado")
+
+        // Verificar permisos de lectura
+        if (!permissionServiceConnector.hasPermission(id, userId)) {
+            throw PermissionDeniedException("No tienes permisos para ejecutar este snippet")
+        }
+
+        val outputs = mutableListOf<String>()
+        val errors = mutableListOf<String>()
+        var inputIndex = 0
+
+        try {
+            // Parse and execute the snippet line by line
+            val lines = snippet.content.lines()
+
+            for (line in lines) {
+                val trimmed = line.trim()
+
+                // Handle println()
+                if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
+                    val content = trimmed.substring(8, trimmed.length - 2).trim()
+                    val output = if (content.startsWith("\"") && content.endsWith("\"")) {
+                        content.substring(1, content.length - 1)
+                    } else {
+                        content
+                    }
+                    outputs.add(output)
+                    println("📤 [OUTPUT] $output")
+                }
+
+                // Handle readInput()
+                if (trimmed.contains("readInput(")) {
+                    if (inputIndex < executeSnippetDTO.inputs.size) {
+                        val input = executeSnippetDTO.inputs[inputIndex]
+                        println("📥 [INPUT] Provided: $input")
+                        inputIndex++
+                    } else {
+                        errors.add("Input required but not provided at line: $line")
+                    }
+                }
+            }
+
+            println("✅ [EXECUTE] Execution completed with ${outputs.size} outputs")
+        } catch (e: Exception) {
+            errors.add("Execution error: ${e.message}")
+            println("❌ [EXECUTE] Error: ${e.message}")
+        }
+
+        return com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO(
+            outputs = outputs,
+            errors = errors,
+        )
     }
 
     private fun toResponseDTO(snippet: Snippet): SnippetResponseDTO {
