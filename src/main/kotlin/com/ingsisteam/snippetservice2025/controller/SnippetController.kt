@@ -260,4 +260,26 @@ class SnippetController(
         println("✅ [DELETE /api/snippets/$id] Snippet eliminado exitosamente")
         return ResponseEntity.noContent().build()
     }
+
+    @PostMapping("/{id}/execute")
+    @Operation(summary = "Ejecutar snippet", description = "Ejecuta un snippet de forma interactiva con inputs provistos")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Snippet ejecutado exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos para ejecutar este snippet"),
+            ApiResponse(responseCode = "404", description = "Snippet no encontrado"),
+        ],
+    )
+    fun executeSnippet(
+        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @RequestBody executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO> {
+        val userId = getUserId(jwt)
+        println("📥 [POST /api/snippets/$id/execute] User ID: $userId with ${executeSnippetDTO.inputs.size} inputs")
+        val result = snippetService.executeSnippet(id, executeSnippetDTO, userId)
+        println("✅ [POST /api/snippets/$id/execute] Execution completed with ${result.outputs.size} outputs")
+        return ResponseEntity.ok(result)
+    }
 }
