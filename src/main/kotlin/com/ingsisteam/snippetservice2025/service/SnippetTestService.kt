@@ -159,19 +159,20 @@ class SnippetTestService(
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun executeSnippetWithInputs(snippet: Snippet, inputs: List<String>): List<String> {
         // Modificar el código del snippet para inyectar los inputs como variables
         // Por simplicidad, ejecutaremos el snippet y capturaremos los outputs de println
-        
+
         // TODO: En una implementación completa, necesitaríamos:
         // 1. Parsear el código para encontrar llamadas a readInput()
         // 2. Reemplazarlas con los valores de inputs
         // 3. Ejecutar y capturar los outputs de println()
-        
+
         // Por ahora, simulamos una ejecución simple:
         // Asumimos que el snippet solo tiene println() sin readInput()
         val outputs = mutableListOf<String>()
-        
+
         // Dividir el contenido en líneas y buscar println()
         val lines = snippet.content.lines()
         for (line in lines) {
@@ -190,7 +191,7 @@ class SnippetTestService(
                 outputs.add(output)
             }
         }
-        
+
         return outputs
     }
 
