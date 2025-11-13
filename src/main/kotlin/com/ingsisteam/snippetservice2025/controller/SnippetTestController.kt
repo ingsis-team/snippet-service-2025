@@ -104,4 +104,54 @@ class SnippetTestController(
         println("✅ [GET /api/snippets/$snippetId/tests] Returning ${tests.size} tests")
         return ResponseEntity.ok(tests)
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{testId}")
+    @Operation(
+        summary = "Eliminar un test",
+        description = "Elimina un test de un snippet",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Test eliminado exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos para eliminar tests de este snippet"),
+            ApiResponse(responseCode = "404", description = "Test o snippet no encontrado"),
+        ],
+    )
+    fun deleteTest(
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<Void> {
+        val userId = getUserId(jwt)
+        println("📥 [DELETE /api/snippets/$snippetId/tests/$testId] User ID: $userId")
+        snippetTestService.deleteTest(snippetId, testId, userId)
+        println("✅ [DELETE /api/snippets/$snippetId/tests/$testId] Test deleted successfully")
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/{testId}/execute")
+    @Operation(
+        summary = "Ejecutar un test",
+        description = "Ejecuta un test con los inputs definidos y compara con los outputs esperados",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Test ejecutado exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos para ejecutar tests de este snippet"),
+            ApiResponse(responseCode = "404", description = "Test o snippet no encontrado"),
+        ],
+    )
+    fun executeTest(
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<Map<String, Any>> {
+        val userId = getUserId(jwt)
+        println("📥 [POST /api/snippets/$snippetId/tests/$testId/execute] User ID: $userId")
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+        println("✅ [POST /api/snippets/$snippetId/tests/$testId/execute] Test executed: ${if (result["passed"] as Boolean) "PASSED" else "FAILED"}")
+        return ResponseEntity.ok(result)
+    }
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.ElementCollection
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -27,12 +28,12 @@ data class SnippetTest(
     @Column(nullable = false)
     var name: String,
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_inputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "input_value", columnDefinition = "TEXT")
     var inputs: List<String> = emptyList(),
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_outputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "output_value", columnDefinition = "TEXT")
     var expectedOutputs: List<String> = emptyList(),
