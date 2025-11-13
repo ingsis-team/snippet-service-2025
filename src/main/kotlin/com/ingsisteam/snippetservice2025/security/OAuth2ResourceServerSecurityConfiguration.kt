@@ -52,13 +52,9 @@ class OAuth2ResourceServerSecurityConfiguration(
     }
 
     @Bean
-    @ConditionalOnProperty(
-        name = ["spring.security.oauth2.resourceserver.jwt.issuer-uri"],
-        matchIfMissing = false,
-    )
-    fun jwtDecoder(): JwtDecoder {
-        if (issuer.isBlank()) {
-            throw IllegalStateException("JWT issuer URI cannot be empty when JWT decoder is enabled")
+    fun jwtDecoder(): JwtDecoder? {
+        if (issuer.isNullOrBlank()) {
+            return null
         }
         val jwtDecoder = NimbusJwtDecoder.withIssuerLocation(issuer).build()
         val audienceValidator: OAuth2TokenValidator<Jwt> = AudienceValidator(audience)
