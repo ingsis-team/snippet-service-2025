@@ -21,6 +21,13 @@ services:
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
       AUTH0_MANAGEMENT_TOKEN: ${AUTH0_MANAGEMENT_TOKEN}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH_SERVER_URI}
+      # New Relic configuration
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      # Inyectar agente en JVM
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS}
+    volumes:
+      - ./newrelic:/newrelic
     depends_on:
       db:
         condition: service_healthy
