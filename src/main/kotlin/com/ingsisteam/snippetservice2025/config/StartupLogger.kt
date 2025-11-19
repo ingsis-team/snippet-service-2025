@@ -12,9 +12,9 @@ class StartupLogger {
     @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
         logger.info("\n============================================================")
-        logger.info("🔐 PERMISSION SERVICE IS RUNNING!")
-        logger.info("📍 Server: http://localhost:8080")
-        logger.info("📚 API Docs: http://localhost:8080/swagger-ui.html")
+        logger.info("SNIPPET SERVICE IS RUNNING!")
+        logger.info("Server: http://localhost:8080")
+        logger.info("API Docs: http://localhost:8080/swagger-ui.html")
         logger.info("============================================================\n")
     }
 }
