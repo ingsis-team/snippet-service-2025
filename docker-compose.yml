@@ -16,6 +16,7 @@ services:
       DB_PORT: ${DB_PORT}
       PERMISSION_URL: ${PERMISSION_URL}
       PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
+      ASSET_URL: ${ASSET_URL:-localhost:8083}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       AUTH_SERVER_URI: ${AUTH_SERVER_URI}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
@@ -35,6 +36,7 @@ services:
       - default
       - permission-service-2025_default
       - printscript-service-2025_default
+      - asset-service_default
 
   db:
     container_name: snippet-db-${ENVIRONMENT}
@@ -64,6 +66,8 @@ networks:
   permission-service-2025_default:
     external: true
   printscript-service-2025_default:
+    external: true
+  asset-service_default:
     external: true
 
 

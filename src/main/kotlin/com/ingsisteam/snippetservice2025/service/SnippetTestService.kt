@@ -22,6 +22,7 @@ class SnippetTestService(
     private val snippetRepository: SnippetRepository,
     private val permissionServiceConnector: PermissionServiceConnector,
     private val printScriptServiceConnector: PrintScriptServiceConnector,
+    private val assetServiceConnector: com.ingsisteam.snippetservice2025.connector.AssetServiceConnector,
 ) {
     private val logger = LoggerFactory.getLogger(SnippetTestService::class.java)
 
@@ -181,8 +182,16 @@ class SnippetTestService(
         // We assume the snippet only has println() without readInput()
         val outputs = mutableListOf<String>()
 
+        // Retrieve content from asset service
+        val content = try {
+            assetServiceConnector.getSnippetContent(snippet.id)
+        } catch (e: Exception) {
+            logger.error("Failed to retrieve snippet content for test execution: {}", snippet.id, e)
+            throw RuntimeException("Failed to retrieve snippet content: ${e.message}", e)
+        }
+
         // Split content into lines and search for println()
-        val lines = snippet.content.lines()
+        val lines = content.lines()
         for (line in lines) {
             val trimmed = line.trim()
             if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {

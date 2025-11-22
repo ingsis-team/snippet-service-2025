@@ -29,9 +29,6 @@ data class Snippet(
     @Column(nullable = false)
     var language: SnippetLanguage,
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    var content: String,
-
     @Column(name = "user_id", nullable = false)
     var userId: String,
 
@@ -49,7 +46,6 @@ data class Snippet(
         name = "",
         description = "",
         language = SnippetLanguage.PRINTSCRIPT,
-        content = "",
         userId = "",
         version = "",
     )
