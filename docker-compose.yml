@@ -55,6 +55,21 @@ services:
       retries: 5
       start_period: 30s
 
+  agent:
+    container_name: newrelic-infra
+    build:
+      context: .
+      dockerfile: newrelic/newrelic-infra/newrelic-infra.dockerfile
+    cap_add:
+      - SYS_PTRACE
+    network_mode: bridge
+    pid: host
+    privileged: true
+    volumes:
+      - "/:/host:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     name: postgres_data_${ENVIRONMENT}
@@ -65,5 +80,3 @@ networks:
     external: true
   printscript-service-2025_default:
     external: true
-
-
