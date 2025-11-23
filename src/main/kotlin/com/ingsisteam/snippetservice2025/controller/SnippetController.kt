@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.controller
 
+import com.ingsisteam.snippetservice2025.exception.UnauthorizedException
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.ShareSnippetDTO
@@ -41,9 +42,12 @@ class SnippetController(
 ) {
     private val logger = LoggerFactory.getLogger(SnippetController::class.java)
 
-    // Helper function to extract user ID from JWT
+    // Helper function to extract user ID from JWT or use test user
     private fun getUserId(jwt: Jwt?): String {
-        val userId = jwt?.subject ?: throw IllegalArgumentException("Usuario no autenticado")
+        val userId = jwt?.subject ?: throw UnauthorizedException("Usuario no autenticado. Se requiere un token JWT válido")
+        if (userId == "test-user@example.com") {
+            throw UnauthorizedException("Usuario mockeado no permitido. Debe usar credenciales reales")
+        }
         return userId
     }
 
