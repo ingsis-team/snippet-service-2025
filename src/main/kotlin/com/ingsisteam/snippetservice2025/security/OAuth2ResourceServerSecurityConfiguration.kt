@@ -28,25 +28,11 @@ class OAuth2ResourceServerSecurityConfiguration(
             it
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // Temporarily allow all API requests without authentication for testing
-                .requestMatchers("/api/**").permitAll()
-                .anyRequest().permitAll()
-            // TODO: Re-enable authentication for production
-            // .requestMatchers(GET, "/api/snippets/users").authenticated()
-            // .requestMatchers(POST, "/api/snippets/share").authenticated()
-            // .requestMatchers(GET, "/api/share/users").authenticated()
-            // .requestMatchers(POST, "/api/share").authenticated()
-            // .requestMatchers(GET, "/api/snippets").authenticated()
-            // .requestMatchers(GET, "/api/snippets/**").authenticated()
-            // .requestMatchers(POST, "/api/snippets").authenticated()
-            // .requestMatchers(PUT, "/api/snippets/**").authenticated()
-            // .anyRequest().authenticated()
+                .anyRequest().authenticated()
         }
-            // .oauth2ResourceServer { it.jwt(withDefaults()) } // Disabled for testing
+            .oauth2ResourceServer { it.jwt(withDefaults()) }
             .cors(withDefaults())
-            .csrf {
-                it.disable()
-            }
+            .csrf { it.disable() }
         return http.build()
     }
 

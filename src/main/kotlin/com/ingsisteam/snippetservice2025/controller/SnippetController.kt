@@ -41,8 +41,11 @@ class SnippetController(
 ) {
     private val logger = LoggerFactory.getLogger(SnippetController::class.java)
 
-    // Helper function to extract user ID from JWT or use test user
-    private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
+    // Helper function to extract user ID from JWT
+    private fun getUserId(jwt: Jwt?): String {
+        val userId = jwt?.subject ?: throw IllegalArgumentException("Usuario no autenticado")
+        return userId
+    }
 
     // Data class for success responses
     data class SuccessResponse(
