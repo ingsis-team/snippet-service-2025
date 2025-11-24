@@ -35,14 +35,6 @@ class PrintScriptServiceConnector(
                 .bodyValue(content) // WebClient will serialize it properly as JSON string
                 .retrieve()
                 .bodyToMono(ValidationResult::class.java)
-                .onErrorReturn(
-                    ValidationResult(
-                        isValid = false,
-                        rule = "CONNECTION_ERROR",
-                        line = 1,
-                        column = 1,
-                    ),
-                )
                 .block()
 
             // Convert ValidationResult to ValidationResponse
@@ -52,10 +44,10 @@ class PrintScriptServiceConnector(
                     isValid = false,
                     errors = listOf(
                         ValidationError(
-                            rule = "UNKNOWN_ERROR",
+                            rule = "SERVICE_ERROR",
                             line = 1,
                             column = 1,
-                            message = "Validation service returned null",
+                            message = "El servicio de validación no devolvió una respuesta",
                         ),
                     ),
                 )
@@ -63,6 +55,7 @@ class PrintScriptServiceConnector(
                 logger.debug("Syntax validation passed")
                 ValidationResponse(isValid = true, errors = null)
             } else {
+                // Propagate validation error from PrintScript service
                 logger.warn("Syntax validation failed: {} at line {}, column {}", result.rule, result.line, result.column)
                 ValidationResponse(
                     isValid = false,
@@ -71,14 +64,14 @@ class PrintScriptServiceConnector(
                             rule = result.rule,
                             line = result.line,
                             column = result.column,
-                            message = "Validation failed: ${result.rule} at line ${result.line}, column ${result.column}",
+                            message = result.rule, // Use the rule as message, PrintScript service should provide descriptive rules
                         ),
                     ),
                 )
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            logger.error("Error connecting to PrintScript validation service: {}", e.message, e)
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            // Connection error - service is down or unreachable
+            logger.error("Cannot connect to PrintScript validation service: {}", e.message)
             ValidationResponse(
                 isValid = false,
                 errors = listOf(
@@ -86,7 +79,45 @@ class PrintScriptServiceConnector(
                         rule = "CONNECTION_ERROR",
                         line = 1,
                         column = 1,
-                        message = "Error connecting to validation service: ${e.message}",
+                        message = "No se pudo conectar al servicio de validación",
+                    ),
+                ),
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            // HTTP error response from the service (4xx, 5xx) - try to parse error message
+            logger.error("PrintScript validation service returned error: {} - {}", e.statusCode, e.responseBodyAsString)
+
+            // Try to extract message from service's error response
+            val errorMessage = try {
+                val errorBody = objectMapper.readTree(e.responseBodyAsString)
+                errorBody.get("message")?.asText() ?: e.responseBodyAsString
+            } catch (parseEx: Exception) {
+                // If we can't parse it, use the raw response
+                e.responseBodyAsString.ifEmpty { "Error del servicio de validación" }
+            }
+
+            ValidationResponse(
+                isValid = false,
+                errors = listOf(
+                    ValidationError(
+                        rule = "VALIDATION_SERVICE_ERROR",
+                        line = 1,
+                        column = 1,
+                        message = errorMessage,
+                    ),
+                ),
+            )
+        } catch (e: Exception) {
+            // Any other unexpected error
+            logger.error("Unexpected error during validation: {}", e.message, e)
+            ValidationResponse(
+                isValid = false,
+                errors = listOf(
+                    ValidationError(
+                        rule = "UNKNOWN_ERROR",
+                        line = 1,
+                        column = 1,
+                        message = e.message ?: "Error inesperado",
                     ),
                 ),
             )

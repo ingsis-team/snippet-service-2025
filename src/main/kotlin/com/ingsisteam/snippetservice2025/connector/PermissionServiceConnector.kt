@@ -25,8 +25,8 @@ class PermissionServiceConnector(
         logger.debug("Creating permission for snippetId: {}, userId: {}, role: {}", snippetId, userId, role)
 
         val request = PermissionRequest(
-            snippet_id = snippetId,
-            user_id = userId,
+            snippetId = snippetId,
+            userId = userId,
             role = role,
         )
 
@@ -43,8 +43,7 @@ class PermissionServiceConnector(
             response
         } catch (e: Exception) {
             // Log error but don't fail snippet creation
-            e.printStackTrace()
-            logger.warn("Could not create permission for snippetId: {}, error: {}", snippetId, e.message)
+            logger.error("Could not create permission for snippetId: {}, error: {}", snippetId, e.message, e)
             null
         }
     }

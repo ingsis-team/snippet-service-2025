@@ -98,7 +98,6 @@ class GlobalExceptionHandler {
             message = "El código contiene errores de sintaxis",
             details = listOf(
                 "Línea ${ex.line}, Columna ${ex.column}: ${ex.message}",
-                "Regla violada: ${ex.rule}",
             ),
             path = request.getDescription(false).replace("uri=", ""),
         )
