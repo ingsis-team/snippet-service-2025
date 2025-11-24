@@ -65,17 +65,16 @@ class SnippetService(
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
 
-        // Delegate permission creation to Permission Service
-        try {
-            permissionServiceConnector.createPermission(
-                snippetId = savedSnippet.id,
-                userId = userId,
-                role = "OWNER",
-            )
-            logger.debug("Permission created for snippet: {}", savedSnippet.id)
-        } catch (e: Exception) {
-            logger.warn("Could not create permission for snippet {}: {}", savedSnippet.id, e.message)
-            // Log warning but don't fail snippet creation
+        // Delegate permission creation to Permission Service - THIS IS MANDATORY
+        val permissionCreated = permissionServiceConnector.createPermission(
+            snippetId = savedSnippet.id,
+            userId = userId,
+            role = "OWNER",
+        )
+
+        if (permissionCreated == null) {
+            logger.error("Failed to create permission for snippet {}, rolling back transaction", savedSnippet.id)
+            throw RuntimeException("No se pudo crear el permiso para el snippet. El servicio de permisos no está disponible")
         }
 
         // Trigger automatic formatting, linting, and testing
@@ -190,17 +189,40 @@ class SnippetService(
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
 
-        // Delegate permission creation to Permission Service
+        // Delegate permission creation to Permission Service - THIS IS MANDATORY
+        val permissionCreated = permissionServiceConnector.createPermission(
+            snippetId = savedSnippet.id,
+            userId = userId,
+            role = "OWNER",
+        )
+
+        if (permissionCreated == null) {
+            logger.error("Failed to create permission for snippet {}, rolling back transaction", savedSnippet.id)
+            throw RuntimeException("No se pudo crear el permiso para el snippet. El servicio de permisos no está disponible")
+        }
+
+        logger.debug("Permission created for snippet: {}", savedSnippet.id)
+
+        // Trigger automatic formatting, linting, and testing (optional - don't fail if these fail)
         try {
-            permissionServiceConnector.createPermission(
-                snippetId = savedSnippet.id,
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                role = "OWNER",
+                content = savedSnippet.content,
             )
-            logger.debug("Permission created for snippet: {}", savedSnippet.id)
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = savedSnippet.content,
+            )
         } catch (e: Exception) {
-            logger.warn("Could not create permission for snippet {}: {}", savedSnippet.id, e.message)
-            // Log warning but don't fail snippet creation
+            // Log but don't fail - automatic formatting/linting/testing is optional
+            logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
 
         return toResponseDTO(savedSnippet)
