@@ -398,15 +398,26 @@ class SnippetService(
         logger.debug("Validating syntax with PrintScript service: language={}, version={}", language, version)
         val validationResponse = printScriptServiceConnector.validateSnippet(content, language, version)
 
-        if (!validationResponse.isValid && !validationResponse.errors.isNullOrEmpty()) {
-            val firstError = validationResponse.errors.first()
-            logger.warn("Syntax validation failed: {} at line {}, column {}", firstError.rule, firstError.line, firstError.column)
-            throw SyntaxValidationException(
-                rule = firstError.rule,
-                line = firstError.line,
-                column = firstError.column,
-                message = firstError.message,
-            )
+        if (!validationResponse.isValid) {
+            if (!validationResponse.errors.isNullOrEmpty()) {
+                val firstError = validationResponse.errors.first()
+                logger.warn("Syntax validation failed: {} at line {}, column {}", firstError.rule, firstError.line, firstError.column)
+                throw SyntaxValidationException(
+                    rule = firstError.rule,
+                    line = firstError.line,
+                    column = firstError.column,
+                    message = firstError.message,
+                )
+            } else {
+                // Si isValid es false pero no hay errores específicos, lanzar excepción genérica
+                logger.error("Validation service returned invalid response without error details")
+                throw SyntaxValidationException(
+                    rule = "VALIDATION_ERROR",
+                    line = 1,
+                    column = 1,
+                    message = "Error en la validación del snippet",
+                )
+            }
         }
         logger.debug("Syntax validation passed")
     }
