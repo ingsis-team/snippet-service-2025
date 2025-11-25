@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.controller
 
+import com.ingsisteam.snippetservice2025.exception.UnauthorizedException
 import com.ingsisteam.snippetservice2025.model.dto.CreateTestDTO
 import com.ingsisteam.snippetservice2025.model.dto.TestResponseDTO
 import com.ingsisteam.snippetservice2025.service.SnippetTestService
@@ -30,7 +31,13 @@ class SnippetTestController(
     private val logger = LoggerFactory.getLogger(SnippetTestController::class.java)
 
     // Helper function to extract user ID from JWT or use test user
-    private fun getUserId(jwt: Jwt?): String = jwt?.subject ?: "test-user@example.com"
+    private fun getUserId(jwt: Jwt?): String {
+        val userId = jwt?.subject ?: throw UnauthorizedException("Usuario no autenticado. Se requiere un token JWT válido")
+        if (userId == "test-user@example.com") {
+            throw UnauthorizedException("Usuario mockeado no permitido. Debe usar credenciales reales")
+        }
+        return userId
+    }
 
     // Data class for success responses
     data class SuccessResponse(
@@ -54,7 +61,7 @@ class SnippetTestController(
         ],
     )
     fun createTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
         @Valid @RequestBody createTestDTO: CreateTestDTO,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
@@ -79,8 +86,8 @@ class SnippetTestController(
         ],
     )
     fun getTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
@@ -104,7 +111,7 @@ class SnippetTestController(
         ],
     )
     fun getTestsBySnippet(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<TestResponseDTO>> {
         val userId = getUserId(jwt)
@@ -128,8 +135,8 @@ class SnippetTestController(
         ],
     )
     fun deleteTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SuccessResponse> {
         val userId = getUserId(jwt)
@@ -158,8 +165,8 @@ class SnippetTestController(
         ],
     )
     fun executeTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Map<String, Any>> {
         val userId = getUserId(jwt)

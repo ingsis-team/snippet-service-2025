@@ -53,7 +53,7 @@ class ShareService(
             userId = currentUserId,
         )
 
-        if (!permissionCheck.hasPermission || permissionCheck.role != "OWNER") {
+        if (!permissionCheck.has_permission || permissionCheck.role != "OWNER") {
             logger.warn("User {} is not owner of snippet {}, permission denied", currentUserId, shareSnippetDTO.snippetId)
             throw PermissionDeniedException(
                 "No tienes permisos de owner sobre este snippet. Solo el propietario puede compartir snippets.",
@@ -68,7 +68,7 @@ class ShareService(
             userId = shareSnippetDTO.targetUserId,
         )
 
-        if (existingPermission.hasPermission) {
+        if (existingPermission.has_permission) {
             logger.info(
                 "User {} already has permission on snippet {} with role: {}",
                 shareSnippetDTO.targetUserId,
@@ -102,8 +102,8 @@ class ShareService(
         logger.info("Snippet {} successfully shared with user {}", shareSnippetDTO.snippetId, shareSnippetDTO.targetUserId)
 
         return ShareSnippetResponseDTO(
-            snippetId = permissionResponse.snippetId,
-            sharedWithUserId = permissionResponse.userId,
+            snippetId = permissionResponse.snippet_id,
+            sharedWithUserId = permissionResponse.user_id,
             role = permissionResponse.role,
             message = "Snippet compartido exitosamente con permisos de lectura",
         )

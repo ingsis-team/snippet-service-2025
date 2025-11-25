@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface SnippetRepository : JpaRepository<Snippet, Long> {
+interface SnippetRepository : JpaRepository<Snippet, String> {
 
     // Find snippets by user
     fun findByUserId(userId: String): List<Snippet>
@@ -17,5 +17,5 @@ interface SnippetRepository : JpaRepository<Snippet, Long> {
     fun existsByUserIdAndName(userId: String, name: String): Boolean
 
     // Find specific snippet by user and id
-    fun findByIdAndUserId(id: Long, userId: String): Snippet?
+    fun findByIdAndUserId(id: String, userId: String): Snippet?
 }
