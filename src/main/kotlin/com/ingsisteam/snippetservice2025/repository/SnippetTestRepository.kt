@@ -5,14 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface SnippetTestRepository : JpaRepository<SnippetTest, Long> {
+interface SnippetTestRepository : JpaRepository<SnippetTest, String> {
 
     // Find all tests for a snippet
-    fun findBySnippetId(snippetId: Long): List<SnippetTest>
+    fun findBySnippetId(snippetId: String): List<SnippetTest>
 
     // Find a specific test by snippet and id
-    fun findByIdAndSnippetId(id: Long, snippetId: Long): SnippetTest?
+    fun findByIdAndSnippetId(id: String, snippetId: String): SnippetTest?
 
     // Check if a test with that name exists for the snippet
-    fun existsBySnippetIdAndName(snippetId: Long, name: String): Boolean
+    fun existsBySnippetIdAndName(snippetId: String, name: String): Boolean
 }

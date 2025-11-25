@@ -21,7 +21,7 @@ class PermissionServiceConnector(
         webClient.baseUrl(permissionUrl).build()
     }
 
-    fun createPermission(snippetId: Long, userId: String, role: String = "OWNER"): PermissionResponse? {
+    fun createPermission(snippetId: String, userId: String, role: String = "OWNER"): PermissionResponse? {
         logger.debug("Creating permission for snippetId: {}, userId: {}, role: {}", snippetId, userId, role)
 
         val request = PermissionRequest(
@@ -43,8 +43,7 @@ class PermissionServiceConnector(
             response
         } catch (e: Exception) {
             // Log error but don't fail snippet creation
-            e.printStackTrace()
-            logger.warn("Could not create permission for snippetId: {}, error: {}", snippetId, e.message)
+            logger.error("Could not create permission for snippetId: {}, error: {}", snippetId, e.message, e)
             null
         }
     }
@@ -55,7 +54,7 @@ class PermissionServiceConnector(
      * @param userId ID del usuario
      * @return PermissionCheckResponse con hasPermission y role
      */
-    fun checkPermission(snippetId: Long, userId: String): PermissionCheckResponse {
+    fun checkPermission(snippetId: String, userId: String): PermissionCheckResponse {
         logger.debug("Checking permission for snippetId: {}, userId: {}", snippetId, userId)
 
         return try {
@@ -63,12 +62,12 @@ class PermissionServiceConnector(
                 .uri("/api/permissions/check?snippetId=$snippetId&userId=$userId")
                 .retrieve()
                 .bodyToMono(PermissionCheckResponse::class.java)
-                .block() ?: PermissionCheckResponse(hasPermission = false, role = null)
+                .block() ?: PermissionCheckResponse(has_permission = false, role = null)
 
             logger.debug(
                 "Permission check result for snippetId {}: hasPermission={}, role={}",
                 snippetId,
-                response.hasPermission,
+                response.has_permission,
                 response.role,
             )
             response
@@ -78,7 +77,7 @@ class PermissionServiceConnector(
         }
     }
 
-    fun hasPermission(snippetId: Long, userId: String): Boolean {
+    fun hasPermission(snippetId: String, userId: String): Boolean {
         logger.debug("Checking if user {} has permission on snippet {}", userId, snippetId)
 
         return try {
@@ -88,7 +87,7 @@ class PermissionServiceConnector(
                 .bodyToMono(PermissionCheckResponseDTO::class.java)
                 .block()
 
-            val hasPermission = response?.hasPermission ?: false
+            val hasPermission = response?.has_permission ?: false
             logger.debug("User {} has permission on snippet {}: {}", userId, snippetId, hasPermission)
             hasPermission
         } catch (e: Exception) {
@@ -99,7 +98,7 @@ class PermissionServiceConnector(
         }
     }
 
-    fun hasWritePermission(snippetId: Long, userId: String): Boolean {
+    fun hasWritePermission(snippetId: String, userId: String): Boolean {
         logger.debug("Checking if user {} has write permission on snippet {}", userId, snippetId)
 
         return try {
@@ -124,7 +123,7 @@ class PermissionServiceConnector(
      * @param userId ID del usuario
      * @return Lista de IDs de snippets permitidos
      */
-    fun getUserPermittedSnippets(userId: String): List<Long> {
+    fun getUserPermittedSnippets(userId: String): List<String> {
         logger.debug("Fetching all permitted snippets for user: {}", userId)
 
         return try {
@@ -135,7 +134,7 @@ class PermissionServiceConnector(
                 .collectList()
                 .block() ?: emptyList()
 
-            val snippetIds = permissions.map { it.snippetId }
+            val snippetIds = permissions.map { it.snippet_id }
             logger.debug("User {} has access to {} snippets", userId, snippetIds.size)
             snippetIds
         } catch (e: Exception) {
@@ -148,7 +147,7 @@ class PermissionServiceConnector(
      * Elimina todos los permisos de un snippet
      * @param snippetId ID del snippet
      */
-    fun deleteSnippetPermissions(snippetId: Long) {
+    fun deleteSnippetPermissions(snippetId: String) {
         logger.debug("Deleting all permissions for snippet: {}", snippetId)
 
         try {
@@ -166,16 +165,16 @@ class PermissionServiceConnector(
             permissions.forEach { permission ->
                 try {
                     client.delete()
-                        .uri("/api/permissions/snippet/$snippetId/user/${permission.userId}")
+                        .uri("/api/permissions/snippet/$snippetId/user/${permission.user_id}")
                         .retrieve()
                         .bodyToMono(Void::class.java)
                         .block()
 
-                    logger.debug("Deleted permission for user {} on snippet {}", permission.userId, snippetId)
+                    logger.debug("Deleted permission for user {} on snippet {}", permission.user_id, snippetId)
                 } catch (e: Exception) {
                     logger.warn(
                         "Could not delete permission for user {} on snippet {}: {}",
-                        permission.userId,
+                        permission.user_id,
                         snippetId,
                         e.message,
                     )

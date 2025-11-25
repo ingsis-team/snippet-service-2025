@@ -4,8 +4,8 @@ import com.ingsisteam.snippetservice2025.model.enum.TestStatus
 import java.time.LocalDateTime
 
 data class TestResponseDTO(
-    val id: Long,
-    val snippetId: Long,
+    val id: String,
+    val snippetId: String,
     val name: String,
     val inputs: List<String>,
     val expectedOutputs: List<String>,

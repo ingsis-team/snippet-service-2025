@@ -4,7 +4,7 @@ import com.ingsisteam.snippetservice2025.model.enum.SnippetLanguage
 import java.time.LocalDateTime
 
 data class SnippetResponseDTO(
-    val id: Long,
+    val id: String,
     val name: String,
     val description: String,
     val language: SnippetLanguage,

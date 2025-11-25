@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
  */
 data class ShareSnippetDTO(
     @JsonProperty("snippet_id")
-    val snippetId: Long,
+    val snippetId: String,
     @JsonProperty("target_user_id")
     val targetUserId: String, // ID del usuario con el que se comparte
 )
@@ -16,7 +16,7 @@ data class ShareSnippetDTO(
  * DTO de respuesta al compartir un snippet
  */
 data class ShareSnippetResponseDTO(
-    val snippetId: Long,
+    val snippetId: String,
     val sharedWithUserId: String,
     val role: String,
     val message: String,

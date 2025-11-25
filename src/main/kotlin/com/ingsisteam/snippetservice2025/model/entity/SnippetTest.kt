@@ -19,11 +19,11 @@ import java.time.LocalDateTime
 @Table(name = "snippet_tests")
 data class SnippetTest(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: String = "",
 
     @Column(name = "snippet_id", nullable = false)
-    val snippetId: Long,
+    val snippetId: String,
 
     @Column(nullable = false)
     var name: String,
@@ -31,12 +31,12 @@ data class SnippetTest(
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_inputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "input_value", columnDefinition = "TEXT")
-    var inputs: List<String> = emptyList(),
+    var inputs: List<String> = mutableListOf(),
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_outputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "output_value", columnDefinition = "TEXT")
-    var expectedOutputs: List<String> = emptyList(),
+    var expectedOutputs: List<String> = mutableListOf(),
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -49,10 +49,10 @@ data class SnippetTest(
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
     constructor() : this(
-        snippetId = 0L,
+        snippetId = "",
         name = "",
-        inputs = emptyList(),
-        expectedOutputs = emptyList(),
+        inputs = mutableListOf(),
+        expectedOutputs = mutableListOf(),
         expectedStatus = TestStatus.VALID,
     )
 }
