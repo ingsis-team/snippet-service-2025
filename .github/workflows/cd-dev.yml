@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ dev ]
 
 permissions:
   contents: read
@@ -53,3 +53,17 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: refresh container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd infra-microservices-2025
+            # Actualizar imagen y reiniciar servicio
+            docker compose pull snippet-service
+            docker compose up -d --force-recreate snippet-service
+            # Reiniciar proxy para aplicar cambios
+            docker compose restart proxy
