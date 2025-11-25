@@ -92,7 +92,7 @@ class SnippetTestRepositoryTest @Autowired constructor(
 
     @Test
     fun `findBySnippetId returns empty list if no tests found for snippet`() {
-        val foundTests = snippetTestRepository.findBySnippetId(999L) // Non-existent snippet ID
+        val foundTests = snippetTestRepository.findBySnippetId("non-existent-id") // Non-existent snippet ID
         assertEquals(0, foundTests.size)
     }
 
@@ -107,7 +107,7 @@ class SnippetTestRepositoryTest @Autowired constructor(
 
     @Test
     fun `findByIdAndSnippetId returns null if test not found for snippet`() {
-        val foundTest = snippetTestRepository.findByIdAndSnippetId(999L, testSnippet.id) // Non-existent test ID
+        val foundTest = snippetTestRepository.findByIdAndSnippetId("non-existent-id", testSnippet.id) // Non-existent test ID
         assertNull(foundTest)
 
         val test1 = snippetTestRepository.findBySnippetId(testSnippet.id).first { it.name == "Test 1 for Parent Snippet" }

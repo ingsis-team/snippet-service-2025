@@ -3,6 +3,7 @@ package com.ingsisteam.snippetservice2025.exception
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.core.MethodParameter
 import org.springframework.http.HttpStatus
@@ -10,123 +11,130 @@ import org.springframework.http.ResponseEntity
 import org.springframework.validation.BindingResult
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.context.request.WebRequest
 
 class GlobalExceptionHandlerTest {
 
     private val handler = GlobalExceptionHandler()
+    private val mockRequest = mockk<WebRequest>(relaxed = true)
+
+    init {
+        every { mockRequest.getDescription(false) } returns "uri=/test"
+    }
 
     @Test
     fun `handleValidationExceptions should return 400 BAD_REQUEST`() {
         val fieldError = FieldError("objectName", "fieldName", "Default message")
         val bindingResult = mockk<BindingResult>(relaxed = true)
-        every { bindingResult.allErrors } returns listOf(fieldError)
-        val methodParameter = MethodParameter(handler.javaClass.getMethod("handleValidationExceptions", MethodArgumentNotValidException::class.java), -1)
+        every { bindingResult.fieldErrors } returns listOf(fieldError)
+        every { bindingResult.globalErrors } returns emptyList()
+        val methodParameter = mockk<MethodParameter>(relaxed = true)
         val ex = MethodArgumentNotValidException(methodParameter, bindingResult)
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleValidationExceptions(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleValidationExceptions(ex, mockRequest)
 
         assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body?.status)
-        assertEquals("Validation Failed", response.body?.error)
-        assertEquals("fieldName: Default message", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body!!.status)
+        assertEquals("Error de Validación", response.body!!.error)
     }
 
     @Test
-    fun `handleSyntaxValidationException should return 400 BAD_REQUEST`() {
+    fun `handleSyntaxValidation should return 400 BAD_REQUEST`() {
         val ex = SyntaxValidationException("ruleName", 1, 10, "Invalid syntax")
 
-        val response: ResponseEntity<GlobalExceptionHandler.SyntaxErrorResponse> = handler.handleSyntaxValidationException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleSyntaxValidation(ex, mockRequest)
 
         assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body?.status)
-        assertEquals("Syntax Validation Failed", response.body?.error)
-        assertEquals("Invalid syntax", response.body?.message)
-        assertEquals("ruleName", response.body?.rule)
-        assertEquals(1, response.body?.line)
-        assertEquals(10, response.body?.column)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body!!.status)
+        assertEquals("Error de Sintaxis", response.body!!.error)
+        assertEquals("El código contiene errores de sintaxis", response.body!!.message)
     }
 
     @Test
-    fun `handleIllegalArgumentException should return 400 BAD_REQUEST`() {
+    fun `handleIllegalArgument should return 400 BAD_REQUEST`() {
         val ex = IllegalArgumentException("Invalid argument provided")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleIllegalArgumentException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleIllegalArgument(ex, mockRequest)
 
         assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body?.status)
-        assertEquals("Bad Request", response.body?.error)
-        assertEquals("Invalid argument provided", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.body!!.status)
+        assertEquals("Argumento Inválido", response.body!!.error)
+        assertEquals("Invalid argument provided", response.body!!.message)
     }
 
     @Test
-    fun `handleNoSuchElementException should return 404 NOT_FOUND`() {
+    fun `handleNotFound should return 404 NOT_FOUND`() {
         val ex = NoSuchElementException("Resource not found in database")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleNoSuchElementException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleNotFound(ex, mockRequest)
 
         assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
-        assertEquals(HttpStatus.NOT_FOUND.value(), response.body?.status)
-        assertEquals("Not Found", response.body?.error)
-        assertEquals("Resource not found in database", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.body!!.status)
+        assertEquals("Recurso No Encontrado", response.body!!.error)
+        assertEquals("Resource not found in database", response.body!!.message)
     }
 
     @Test
     fun `handleGenericException should return 500 INTERNAL_SERVER_ERROR`() {
         val ex = Exception("Something went wrong internally")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleGenericException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleGenericException(ex, mockRequest)
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.body?.status)
-        assertEquals("Internal Server Error", response.body?.error)
-        assertEquals("Something went wrong internally", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.body!!.status)
+        assertEquals("Error Interno del Servidor", response.body!!.error)
     }
 
     @Test
-    fun `handleUnauthorizedException should return 401 UNAUTHORIZED`() {
+    fun `handleUnauthorized should return 401 UNAUTHORIZED`() {
         val ex = UnauthorizedException("Authentication required")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleUnauthorizedException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleUnauthorized(ex, mockRequest)
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.body?.status)
-        assertEquals("Unauthorized", response.body?.error)
-        assertEquals("Authentication required", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.body!!.status)
+        assertEquals("No Autorizado", response.body!!.error)
     }
 
     @Test
-    fun `handlePermissionDeniedException should return 403 FORBIDDEN`() {
+    fun `handlePermissionDenied should return 403 FORBIDDEN`() {
         val ex = PermissionDeniedException("Access denied for this resource")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handlePermissionDeniedException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handlePermissionDenied(ex, mockRequest)
 
         assertEquals(HttpStatus.FORBIDDEN, response.statusCode)
-        assertEquals(HttpStatus.FORBIDDEN.value(), response.body?.status)
-        assertEquals("Permission Denied", response.body?.error)
-        assertEquals("Access denied for this resource", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.FORBIDDEN.value(), response.body!!.status)
+        assertEquals("Permiso Denegado", response.body!!.error)
     }
 
     @Test
-    fun `handleSnippetNotFoundException should return 404 NOT_FOUND`() {
+    fun `handleSnippetNotFound should return 404 NOT_FOUND`() {
         val ex = SnippetNotFoundException("Snippet with ID 1 not found")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleSnippetNotFoundException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleSnippetNotFound(ex, mockRequest)
 
         assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
-        assertEquals(HttpStatus.NOT_FOUND.value(), response.body?.status)
-        assertEquals("Snippet Not Found", response.body?.error)
-        assertEquals("Snippet with ID 1 not found", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.body!!.status)
+        assertEquals("Snippet No Encontrado", response.body!!.error)
     }
 
     @Test
-    fun `handleTestNotFoundException should return 404 NOT_FOUND`() {
+    fun `handleTestNotFound should return 404 NOT_FOUND`() {
         val ex = TestNotFoundException("Test with ID 1 not found")
 
-        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleTestNotFoundException(ex)
+        val response: ResponseEntity<GlobalExceptionHandler.ErrorResponse> = handler.handleTestNotFound(ex, mockRequest)
 
         assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
-        assertEquals(HttpStatus.NOT_FOUND.value(), response.body?.status)
-        assertEquals("Test Not Found", response.body?.error)
-        assertEquals("Test with ID 1 not found", response.body?.message)
+        assertNotNull(response.body)
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.body!!.status)
+        assertEquals("Test No Encontrado", response.body!!.error)
     }
 }

@@ -130,10 +130,10 @@ class PermissionServiceConnectorTest {
     // --- Tests for createPermission ---
     @Test
     fun `test createPermission success`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val role = "OWNER"
-        val expectedResponse = PermissionResponse(1, snippetId, userId, role, "now")
+        val expectedResponse = PermissionResponse("1", snippetId, userId, role, "now")
 
         mockWebClientPostChain(expectedResponse = expectedResponse)
 
@@ -154,7 +154,7 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test createPermission returns null on API error`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val role = "OWNER"
 
@@ -169,39 +169,39 @@ class PermissionServiceConnectorTest {
     // --- Tests for checkPermission ---
     @Test
     fun `test checkPermission returns true with role when user has permission`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
-        val expectedResponse = PermissionCheckResponse(hasPermission = true, role = "OWNER")
+        val expectedResponse = PermissionCheckResponse(has_permission = true, role = "OWNER")
 
         mockWebClientGetMonoChain(uri, expectedResponse = expectedResponse)
 
         val result = permissionServiceConnector.checkPermission(snippetId, userId)
 
-        assertTrue(result.hasPermission)
+        assertTrue(result.has_permission)
         assertEquals("OWNER", result.role)
         verify(exactly = 1) { requestHeadersUriSpec.uri(uri) }
     }
 
     @Test
     fun `test checkPermission returns false when user does not have permission`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
-        val expectedResponse = PermissionCheckResponse(hasPermission = false, role = null)
+        val expectedResponse = PermissionCheckResponse(has_permission = false, role = null)
 
         mockWebClientGetMonoChain(uri, expectedResponse = expectedResponse)
 
         val result = permissionServiceConnector.checkPermission(snippetId, userId)
 
-        assertFalse(result.hasPermission)
+        assertFalse(result.has_permission)
         assertNull(result.role)
         verify(exactly = 1) { requestHeadersUriSpec.uri(uri) }
     }
 
     @Test
     fun `test checkPermission throws RuntimeException on API error`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
 
@@ -216,10 +216,10 @@ class PermissionServiceConnectorTest {
     // --- Tests for hasPermission ---
     @Test
     fun `test hasPermission returns true when API returns true`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
-        val expectedResponse = PermissionCheckResponseDTO(hasPermission = true)
+        val expectedResponse = PermissionCheckResponseDTO(has_permission = true)
 
         mockWebClientGetMonoChain(uri, expectedResponse = expectedResponse)
 
@@ -231,10 +231,10 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test hasPermission returns false when API returns false`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
-        val expectedResponse = PermissionCheckResponseDTO(hasPermission = false)
+        val expectedResponse = PermissionCheckResponseDTO(has_permission = false)
 
         mockWebClientGetMonoChain(uri, expectedResponse = expectedResponse)
 
@@ -246,7 +246,7 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test hasPermission returns true on API error (fail-safe)`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/check?snippetId=$snippetId&userId=$userId"
 
@@ -261,7 +261,7 @@ class PermissionServiceConnectorTest {
     // --- Tests for hasWritePermission ---
     @Test
     fun `test hasWritePermission returns true when API returns true`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/write-check?snippetId=$snippetId&userId=$userId"
         val expectedResponse = true
@@ -275,7 +275,7 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test hasWritePermission returns false when API returns false`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/write-check?snippetId=$snippetId&userId=$userId"
         val expectedResponse = false
@@ -290,7 +290,7 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test hasWritePermission returns false on API error (fail-secure)`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId = "user123"
         val uri = "/api/permissions/write-check?snippetId=$snippetId&userId=$userId"
 
@@ -308,10 +308,10 @@ class PermissionServiceConnectorTest {
         val userId = "user123"
         val uri = "/api/permissions/user/$userId"
         val expectedPermissions = listOf(
-            PermissionResponse(1, 101L, userId, "OWNER", "now"),
-            PermissionResponse(2, 102L, userId, "READER", "now"),
+            PermissionResponse("1", "101", userId, "OWNER", "now"),
+            PermissionResponse("2", "102", userId, "READER", "now"),
         )
-        val expectedSnippetIds = listOf(101L, 102L)
+        val expectedSnippetIds = listOf("101", "102")
 
         mockWebClientGetFluxChain(uri, expectedResponse = expectedPermissions)
 
@@ -337,12 +337,12 @@ class PermissionServiceConnectorTest {
     // --- Tests for deleteSnippetPermissions ---
     @Test
     fun `test deleteSnippetPermissions success`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId1 = "user1"
         val userId2 = "user2"
         val permissionsToDel = listOf(
-            PermissionResponse(1, snippetId, userId1, "OWNER", "now"),
-            PermissionResponse(2, snippetId, userId2, "READER", "now"),
+            PermissionResponse("1", snippetId, userId1, "OWNER", "now"),
+            PermissionResponse("2", snippetId, userId2, "READER", "now"),
         )
         val fetchUri = "/api/permissions/snippet/$snippetId"
         val deleteUri1 = "/api/permissions/snippet/$snippetId/user/$userId1"
@@ -370,7 +370,7 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test deleteSnippetPermissions handles error fetching permissions`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val fetchUri = "/api/permissions/snippet/$snippetId"
 
         mockWebClientGetFluxChain<PermissionResponse>(fetchUri, shouldThrow = true)
@@ -383,12 +383,12 @@ class PermissionServiceConnectorTest {
 
     @Test
     fun `test deleteSnippetPermissions handles partial deletion errors`() {
-        val snippetId = 1L
+        val snippetId = "1"
         val userId1 = "user1"
         val userId2 = "user2"
         val permissionsToDel = listOf(
-            PermissionResponse(1, snippetId, userId1, "OWNER", "now"),
-            PermissionResponse(2, snippetId, userId2, "READER", "now"),
+            PermissionResponse("1", snippetId, userId1, "OWNER", "now"),
+            PermissionResponse("2", snippetId, userId2, "READER", "now"),
         )
         val fetchUri = "/api/permissions/snippet/$snippetId"
         val deleteUri1 = "/api/permissions/snippet/$snippetId/user/$userId1"

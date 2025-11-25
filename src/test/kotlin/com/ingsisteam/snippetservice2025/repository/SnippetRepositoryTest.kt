@@ -107,7 +107,7 @@ class SnippetRepositoryTest @Autowired constructor(
 
     @Test
     fun `findByIdAndUserId returns null if snippet not found for user`() {
-        val foundSnippet = snippetRepository.findByIdAndUserId(999L, USER_ID) // Non-existent ID
+        val foundSnippet = snippetRepository.findByIdAndUserId("non-existent-id", USER_ID) // Non-existent ID
         assertNull(foundSnippet)
 
         val snippet1 = snippetRepository.findByUserId(USER_ID).first { it.name == "Test Snippet 1" }

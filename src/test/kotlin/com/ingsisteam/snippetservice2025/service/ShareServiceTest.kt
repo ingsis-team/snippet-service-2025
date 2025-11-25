@@ -50,18 +50,18 @@ class ShareServiceTest {
     @Test
     fun `test shareSnippet success`() {
         // Given
-        val snippetId = 1L
+        val snippetId = "1"
         val currentUserId = "owner"
         val targetUserId = "reader"
         val shareSnippetDTO = ShareSnippetDTO(snippetId, targetUserId)
-        val ownerPermissionCheck = PermissionCheckResponse(hasPermission = true, role = "OWNER")
-        val readerPermissionCheck = PermissionCheckResponse(hasPermission = false, role = null)
+        val ownerPermissionCheck = PermissionCheckResponse(has_permission = true, role = "OWNER")
+        val readerPermissionCheck = PermissionCheckResponse(has_permission = false, role = null)
         val createdPermission = PermissionResponse(
-            id = 1,
-            snippetId = snippetId,
-            userId = targetUserId,
+            id = "1",
+            snippet_id = snippetId,
+            user_id = targetUserId,
             role = "READ",
-            createdAt = LocalDateTime.now().toString(),
+            created_at = LocalDateTime.now().toString(),
         )
 
         every { permissionServiceConnector.checkPermission(snippetId, currentUserId) } returns ownerPermissionCheck
@@ -81,11 +81,11 @@ class ShareServiceTest {
     @Test
     fun `test shareSnippet not as owner`() {
         // Given
-        val snippetId = 1L
+        val snippetId = "1"
         val currentUserId = "not-owner"
         val targetUserId = "reader"
         val shareSnippetDTO = ShareSnippetDTO(snippetId, targetUserId)
-        val notOwnerPermissionCheck = PermissionCheckResponse(hasPermission = true, role = "READER")
+        val notOwnerPermissionCheck = PermissionCheckResponse(has_permission = true, role = "READER")
 
         every { permissionServiceConnector.checkPermission(snippetId, currentUserId) } returns notOwnerPermissionCheck
 
@@ -98,12 +98,12 @@ class ShareServiceTest {
     @Test
     fun `test shareSnippet with existing permission`() {
         // Given
-        val snippetId = 1L
+        val snippetId = "1"
         val currentUserId = "owner"
         val targetUserId = "reader"
         val shareSnippetDTO = ShareSnippetDTO(snippetId, targetUserId)
-        val ownerPermissionCheck = PermissionCheckResponse(hasPermission = true, role = "OWNER")
-        val readerPermissionCheck = PermissionCheckResponse(hasPermission = true, role = "READER")
+        val ownerPermissionCheck = PermissionCheckResponse(has_permission = true, role = "OWNER")
+        val readerPermissionCheck = PermissionCheckResponse(has_permission = true, role = "READER")
 
         every { permissionServiceConnector.checkPermission(snippetId, currentUserId) } returns ownerPermissionCheck
         every { permissionServiceConnector.checkPermission(snippetId, targetUserId) } returns readerPermissionCheck
@@ -121,12 +121,12 @@ class ShareServiceTest {
     @Test
     fun `test shareSnippet permission creation fails`() {
         // Given
-        val snippetId = 1L
+        val snippetId = "1"
         val currentUserId = "owner"
         val targetUserId = "reader"
         val shareSnippetDTO = ShareSnippetDTO(snippetId, targetUserId)
-        val ownerPermissionCheck = PermissionCheckResponse(hasPermission = true, role = "OWNER")
-        val readerPermissionCheck = PermissionCheckResponse(hasPermission = false, role = null)
+        val ownerPermissionCheck = PermissionCheckResponse(has_permission = true, role = "OWNER")
+        val readerPermissionCheck = PermissionCheckResponse(has_permission = false, role = null)
 
         every { permissionServiceConnector.checkPermission(snippetId, currentUserId) } returns ownerPermissionCheck
         every { permissionServiceConnector.checkPermission(snippetId, targetUserId) } returns readerPermissionCheck
