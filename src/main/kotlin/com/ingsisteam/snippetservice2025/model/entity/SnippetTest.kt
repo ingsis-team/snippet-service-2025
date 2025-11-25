@@ -31,12 +31,12 @@ data class SnippetTest(
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_inputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "input_value", columnDefinition = "TEXT")
-    var inputs: List<String> = emptyList(),
+    var inputs: List<String> = mutableListOf(),
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "test_outputs", joinColumns = [JoinColumn(name = "test_id")])
     @Column(name = "output_value", columnDefinition = "TEXT")
-    var expectedOutputs: List<String> = emptyList(),
+    var expectedOutputs: List<String> = mutableListOf(),
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -51,8 +51,8 @@ data class SnippetTest(
     constructor() : this(
         snippetId = "",
         name = "",
-        inputs = emptyList(),
-        expectedOutputs = emptyList(),
+        inputs = mutableListOf(),
+        expectedOutputs = mutableListOf(),
         expectedStatus = TestStatus.VALID,
     )
 }
