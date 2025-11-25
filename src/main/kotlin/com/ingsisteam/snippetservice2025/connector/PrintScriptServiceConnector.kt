@@ -89,11 +89,21 @@ class PrintScriptServiceConnector(
 
             // Try to extract message from service's error response
             val errorMessage = try {
-                val errorBody = objectMapper.readTree(e.responseBodyAsString)
-                errorBody.get("message")?.asText() ?: e.responseBodyAsString
+                if (e.responseBodyAsString.isNotBlank()) {
+                    val errorBody = objectMapper.readTree(e.responseBodyAsString)
+                    errorBody.get("message")?.asText() ?: "Error del servicio de validación"
+                } else {
+                    "Error del servicio de validación: ${e.statusCode.value()}"
+                }
             } catch (parseEx: Exception) {
-                // If we can't parse it, use the raw response
-                e.responseBodyAsString.ifEmpty { "Error del servicio de validación" }
+                // If we can't parse it, provide a clear message based on status code
+                when (e.statusCode.value()) {
+                    401 -> "El servicio de validación requiere autenticación"
+                    403 -> "El servicio de validación denegó el acceso"
+                    404 -> "Endpoint de validación no encontrado"
+                    500 -> "Error interno del servicio de validación"
+                    else -> "Error del servicio de validación: ${e.statusCode.value()}"
+                }
             }
 
             ValidationResponse(

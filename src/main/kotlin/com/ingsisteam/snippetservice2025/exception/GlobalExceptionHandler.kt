@@ -92,13 +92,43 @@ class GlobalExceptionHandler {
         ex: SyntaxValidationException,
         request: WebRequest,
     ): ResponseEntity<ErrorResponse> {
+        val details = mutableListOf<String>()
+
+        // Only add line/column info if the message is not empty
+        if (ex.message.isNotBlank()) {
+            details.add("Línea ${ex.line}, Columna ${ex.column}: ${ex.message}")
+        } else {
+            // If message is empty, just show a generic message
+            details.add("Error en la validación del código")
+        }
+
+        // Only add "Regla violada" if it's not a service error
+        if (ex.rule != "VALIDATION_SERVICE_ERROR" &&
+            ex.rule != "CONNECTION_ERROR" &&
+            ex.rule != "SERVICE_ERROR" &&
+            ex.rule != "UNKNOWN_ERROR"
+        ) {
+            details.add("Regla violada: ${ex.rule}")
+        }
+
+        // Determine appropriate error message based on the rule
+        val errorMessage = when (ex.rule) {
+            "VALIDATION_SERVICE_ERROR" -> "Error en printscript service durante la validación"
+            "CONNECTION_ERROR" -> "No se pudo conectar al servicio de validación"
+            "SERVICE_ERROR" -> "Error interno del servicio de validación"
+            "UNKNOWN_ERROR" -> "Error inesperado durante la validación"
+            else -> "El código contiene errores de sintaxis"
+        }
+
         val errorResponse = ErrorResponse(
             status = HttpStatus.BAD_REQUEST.value(),
-            error = "Error de Sintaxis",
-            message = "El código contiene errores de sintaxis",
-            details = listOf(
-                "Línea ${ex.line}, Columna ${ex.column}: ${ex.message}",
-            ),
+            error = if (ex.rule in listOf("VALIDATION_SERVICE_ERROR", "CONNECTION_ERROR", "SERVICE_ERROR", "UNKNOWN_ERROR")) {
+                "Error del Servicio de Validación"
+            } else {
+                "Error de Sintaxis"
+            },
+            message = errorMessage,
+            details = details,
             path = request.getDescription(false).replace("uri=", ""),
         )
 

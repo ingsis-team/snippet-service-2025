@@ -25,8 +25,8 @@ class PermissionServiceConnector(
         logger.debug("Creating permission for snippetId: {}, userId: {}, role: {}", snippetId, userId, role)
 
         val request = PermissionRequest(
-            snippetId = snippetId,
-            userId = userId,
+            snippet_id = snippetId,
+            user_id = userId,
             role = role,
         )
 
@@ -62,12 +62,12 @@ class PermissionServiceConnector(
                 .uri("/api/permissions/check?snippetId=$snippetId&userId=$userId")
                 .retrieve()
                 .bodyToMono(PermissionCheckResponse::class.java)
-                .block() ?: PermissionCheckResponse(hasPermission = false, role = null)
+                .block() ?: PermissionCheckResponse(has_permission = false, role = null)
 
             logger.debug(
                 "Permission check result for snippetId {}: hasPermission={}, role={}",
                 snippetId,
-                response.hasPermission,
+                response.has_permission,
                 response.role,
             )
             response
@@ -87,7 +87,7 @@ class PermissionServiceConnector(
                 .bodyToMono(PermissionCheckResponseDTO::class.java)
                 .block()
 
-            val hasPermission = response?.hasPermission ?: false
+            val hasPermission = response?.has_permission ?: false
             logger.debug("User {} has permission on snippet {}: {}", userId, snippetId, hasPermission)
             hasPermission
         } catch (e: Exception) {
@@ -134,7 +134,7 @@ class PermissionServiceConnector(
                 .collectList()
                 .block() ?: emptyList()
 
-            val snippetIds = permissions.map { it.snippetId }
+            val snippetIds = permissions.map { it.snippet_id }
             logger.debug("User {} has access to {} snippets", userId, snippetIds.size)
             snippetIds
         } catch (e: Exception) {
@@ -165,16 +165,16 @@ class PermissionServiceConnector(
             permissions.forEach { permission ->
                 try {
                     client.delete()
-                        .uri("/api/permissions/snippet/$snippetId/user/${permission.userId}")
+                        .uri("/api/permissions/snippet/$snippetId/user/${permission.user_id}")
                         .retrieve()
                         .bodyToMono(Void::class.java)
                         .block()
 
-                    logger.debug("Deleted permission for user {} on snippet {}", permission.userId, snippetId)
+                    logger.debug("Deleted permission for user {} on snippet {}", permission.user_id, snippetId)
                 } catch (e: Exception) {
                     logger.warn(
                         "Could not delete permission for user {} on snippet {}: {}",
-                        permission.userId,
+                        permission.user_id,
                         snippetId,
                         e.message,
                     )
