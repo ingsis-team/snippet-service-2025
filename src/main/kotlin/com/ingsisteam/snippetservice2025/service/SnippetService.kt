@@ -65,17 +65,27 @@ class SnippetService(
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
 
-        // Delegate permission creation to Permission Service
+        // Delegate permission creation to Permission Service - CRITICAL: must succeed
         try {
-            permissionServiceConnector.createPermission(
+            val permissionResult = permissionServiceConnector.createPermission(
                 snippetId = savedSnippet.id,
                 userId = userId,
                 role = "OWNER",
             )
+
+            if (permissionResult == null) {
+                // Rollback: delete the snippet if permission creation failed
+                logger.error("Permission creation failed for snippet {}, rolling back snippet creation", savedSnippet.id)
+                snippetRepository.deleteById(savedSnippet.id)
+                throw RuntimeException("No se pudo crear el permiso para el snippet. El snippet no fue creado.")
+            }
+
             logger.debug("Permission created for snippet: {}", savedSnippet.id)
         } catch (e: Exception) {
-            logger.warn("Could not create permission for snippet {}: {}", savedSnippet.id, e.message)
-            // Log warning but don't fail snippet creation
+            // Rollback: delete the snippet if permission creation failed
+            logger.error("Permission creation failed for snippet {}: {}, rolling back snippet creation", savedSnippet.id, e.message)
+            snippetRepository.deleteById(savedSnippet.id)
+            throw RuntimeException("No se pudo crear el permiso para el snippet: ${e.message}", e)
         }
 
         // Trigger automatic formatting, linting, and testing
@@ -191,17 +201,27 @@ class SnippetService(
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
 
-        // Delegate permission creation to Permission Service
+        // Delegate permission creation to Permission Service - CRITICAL: must succeed
         try {
-            permissionServiceConnector.createPermission(
+            val permissionResult = permissionServiceConnector.createPermission(
                 snippetId = savedSnippet.id,
                 userId = userId,
                 role = "OWNER",
             )
+
+            if (permissionResult == null) {
+                // Rollback: delete the snippet if permission creation failed
+                logger.error("Permission creation failed for snippet {}, rolling back snippet creation", savedSnippet.id)
+                snippetRepository.deleteById(savedSnippet.id)
+                throw RuntimeException("No se pudo crear el permiso para el snippet. El snippet no fue creado.")
+            }
+
             logger.debug("Permission created for snippet: {}", savedSnippet.id)
         } catch (e: Exception) {
-            logger.warn("Could not create permission for snippet {}: {}", savedSnippet.id, e.message)
-            // Log warning but don't fail snippet creation
+            // Rollback: delete the snippet if permission creation failed
+            logger.error("Permission creation failed for snippet {}: {}, rolling back snippet creation", savedSnippet.id, e.message)
+            snippetRepository.deleteById(savedSnippet.id)
+            throw RuntimeException("No se pudo crear el permiso para el snippet: ${e.message}", e)
         }
 
         return toResponseDTO(savedSnippet)
