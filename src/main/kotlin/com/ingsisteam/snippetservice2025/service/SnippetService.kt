@@ -298,18 +298,25 @@ class SnippetService(
             throw IllegalAccessException("No tienes permisos de escritura para este snippet")
         }
 
-        // Validate that the content is not empty
-        if (updateSnippetDTO.content.isBlank()) {
-            logger.warn("Empty content for snippet update: {}", id)
-            throw IllegalArgumentException("El contenido no puede estar vacío")
+        // Verificar que se proporcione al menos un campo para actualizar
+        if (updateSnippetDTO.content == null && updateSnippetDTO.name == null && updateSnippetDTO.description == null) {
+            logger.warn("No fields provided for snippet update: {}", id)
+            throw IllegalArgumentException("Debe proporcionar al menos un campo para actualizar (content, name o description)")
         }
 
-        logger.debug("Validating syntax for snippet update: {}", id)
-        // Delegate syntax validation to PrintScript Service
-        validateSyntaxWithExternalService(updateSnippetDTO.content, snippet.language.name, snippet.version)
+        // Update content if provided
+        updateSnippetDTO.content?.let { newContent ->
+            if (newContent.isBlank()) {
+                logger.warn("Empty content for snippet update: {}", id)
+                throw IllegalArgumentException("El contenido no puede estar vacío")
+            }
 
-        // Update the snippet content
-        snippet.content = updateSnippetDTO.content
+            logger.debug("Validating syntax for snippet update: {}", id)
+            // Delegate syntax validation to PrintScript Service
+            validateSyntaxWithExternalService(newContent, snippet.language.name, snippet.version)
+
+            snippet.content = newContent
+        }
 
         // Update name if provided
         updateSnippetDTO.name?.let {
@@ -331,25 +338,27 @@ class SnippetService(
         val updatedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet {} updated successfully", id)
 
-        // Trigger automatic formatting, linting, and testing
-        try {
-            printScriptServiceConnector.triggerAutomaticFormatting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = updatedSnippet.content,
-            )
-            printScriptServiceConnector.triggerAutomaticLinting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = updatedSnippet.content,
-            )
-            printScriptServiceConnector.triggerAutomaticTesting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = updatedSnippet.content,
-            )
-        } catch (e: Exception) {
-            // Log but don't fail - automatic formatting/linting/testing is optional
+        // Trigger automatic formatting, linting, and testing only if content was updated
+        if (updateSnippetDTO.content != null) {
+            try {
+                printScriptServiceConnector.triggerAutomaticFormatting(
+                    snippetId = updatedSnippet.id.toString(),
+                    userId = userId,
+                    content = updatedSnippet.content,
+                )
+                printScriptServiceConnector.triggerAutomaticLinting(
+                    snippetId = updatedSnippet.id.toString(),
+                    userId = userId,
+                    content = updatedSnippet.content,
+                )
+                printScriptServiceConnector.triggerAutomaticTesting(
+                    snippetId = updatedSnippet.id.toString(),
+                    userId = userId,
+                    content = updatedSnippet.content,
+                )
+            } catch (e: Exception) {
+                // Log but don't fail - automatic formatting/linting/testing is optional
+            }
         }
 
         return toResponseDTO(updatedSnippet)
