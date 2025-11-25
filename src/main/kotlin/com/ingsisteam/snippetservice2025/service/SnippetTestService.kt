@@ -25,7 +25,7 @@ class SnippetTestService(
 ) {
     private val logger = LoggerFactory.getLogger(SnippetTestService::class.java)
 
-    fun createTest(snippetId: Long, createTestDTO: CreateTestDTO, userId: String): TestResponseDTO {
+    fun createTest(snippetId: String, createTestDTO: CreateTestDTO, userId: String): TestResponseDTO {
         logger.info("Creating test '{}' for snippet {} by user: {}", createTestDTO.name, snippetId, userId)
 
         // Verificar que el snippet existe
@@ -60,7 +60,7 @@ class SnippetTestService(
     }
 
     @Transactional(readOnly = true)
-    fun getTest(snippetId: Long, testId: Long, userId: String): TestResponseDTO {
+    fun getTest(snippetId: String, testId: String, userId: String): TestResponseDTO {
         logger.debug("Fetching test {} for snippet {} by user: {}", testId, snippetId, userId)
 
         // Verificar que el snippet existe
@@ -82,7 +82,7 @@ class SnippetTestService(
     }
 
     @Transactional(readOnly = true)
-    fun getTestsBySnippet(snippetId: Long, userId: String): List<TestResponseDTO> {
+    fun getTestsBySnippet(snippetId: String, userId: String): List<TestResponseDTO> {
         logger.debug("Fetching all tests for snippet {} by user: {}", snippetId, userId)
 
         // Verificar que el snippet existe
@@ -102,7 +102,7 @@ class SnippetTestService(
         return tests.map { toResponseDTO(it) }
     }
 
-    fun deleteTest(snippetId: Long, testId: Long, userId: String) {
+    fun deleteTest(snippetId: String, testId: String, userId: String) {
         logger.info("Deleting test {} from snippet {} by user: {}", testId, snippetId, userId)
 
         // Verificar que el snippet existe
@@ -124,7 +124,7 @@ class SnippetTestService(
         logger.info("Test {} deleted successfully", testId)
     }
 
-    fun executeTest(snippetId: Long, testId: Long, userId: String): Map<String, Any> {
+    fun executeTest(snippetId: String, testId: String, userId: String): Map<String, Any> {
         logger.info("Executing test {} for snippet {} by user: {}", testId, snippetId, userId)
 
         // Verificar que el snippet existe y obtenerlo

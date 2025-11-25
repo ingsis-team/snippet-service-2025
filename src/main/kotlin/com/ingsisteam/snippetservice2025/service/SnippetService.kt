@@ -104,7 +104,7 @@ class SnippetService(
     }
 
     @Transactional(readOnly = true)
-    fun getSnippet(id: Long, userId: String): SnippetResponseDTO {
+    fun getSnippet(id: String, userId: String): SnippetResponseDTO {
         logger.debug("Fetching snippet: {} for user: {}", id, userId)
 
         // Verificar permisos con Permission Service
@@ -130,7 +130,7 @@ class SnippetService(
         } catch (e: Exception) {
             logger.error("Error fetching permitted snippets for user {}: {}", userId, e.message, e)
             // Fallback: solo mostrar snippets propios
-            emptyList<Long>()
+            emptyList<String>()
         }
 
         logger.debug("User {} has access to {} snippets via permissions", userId, permittedSnippetIds.size)
@@ -207,7 +207,7 @@ class SnippetService(
         return toResponseDTO(savedSnippet)
     }
 
-    fun updateSnippetFromFile(id: Long, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
+    fun updateSnippetFromFile(id: String, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
         logger.debug("Updating snippet {} from file for user: {}", id, userId)
 
         // Verify that the snippet exists
@@ -285,7 +285,7 @@ class SnippetService(
         return toResponseDTO(updatedSnippet)
     }
 
-    fun updateSnippet(id: Long, updateSnippetDTO: UpdateSnippetDTO, userId: String): SnippetResponseDTO {
+    fun updateSnippet(id: String, updateSnippetDTO: UpdateSnippetDTO, userId: String): SnippetResponseDTO {
         logger.debug("Updating snippet {} from editor for user: {}", id, userId)
 
         // Verify that the snippet exists
@@ -364,7 +364,7 @@ class SnippetService(
         return toResponseDTO(updatedSnippet)
     }
 
-    fun deleteSnippet(id: Long, userId: String) {
+    fun deleteSnippet(id: String, userId: String) {
         logger.debug("Deleting snippet: {} by user: {}", id, userId)
 
         // Verify that the user is OWNER (only owners can delete)
@@ -413,7 +413,7 @@ class SnippetService(
 
     @Transactional(readOnly = true)
     fun executeSnippet(
-        id: Long,
+        id: String,
         executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
         userId: String,
     ): com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO {

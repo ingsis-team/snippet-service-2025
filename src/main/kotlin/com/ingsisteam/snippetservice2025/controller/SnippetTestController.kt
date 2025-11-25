@@ -61,7 +61,7 @@ class SnippetTestController(
         ],
     )
     fun createTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
         @Valid @RequestBody createTestDTO: CreateTestDTO,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
@@ -86,8 +86,8 @@ class SnippetTestController(
         ],
     )
     fun getTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<TestResponseDTO> {
         val userId = getUserId(jwt)
@@ -111,7 +111,7 @@ class SnippetTestController(
         ],
     )
     fun getTestsBySnippet(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<TestResponseDTO>> {
         val userId = getUserId(jwt)
@@ -135,8 +135,8 @@ class SnippetTestController(
         ],
     )
     fun deleteTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SuccessResponse> {
         val userId = getUserId(jwt)
@@ -165,8 +165,8 @@ class SnippetTestController(
         ],
     )
     fun executeTest(
-        @Parameter(description = "ID del snippet") @PathVariable snippetId: Long,
-        @Parameter(description = "ID del test") @PathVariable testId: Long,
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @Parameter(description = "ID del test") @PathVariable testId: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<Map<String, Any>> {
         val userId = getUserId(jwt)

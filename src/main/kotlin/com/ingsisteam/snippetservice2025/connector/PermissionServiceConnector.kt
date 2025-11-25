@@ -21,7 +21,7 @@ class PermissionServiceConnector(
         webClient.baseUrl(permissionUrl).build()
     }
 
-    fun createPermission(snippetId: Long, userId: String, role: String = "OWNER"): PermissionResponse? {
+    fun createPermission(snippetId: String, userId: String, role: String = "OWNER"): PermissionResponse? {
         logger.debug("Creating permission for snippetId: {}, userId: {}, role: {}", snippetId, userId, role)
 
         val request = PermissionRequest(
@@ -54,7 +54,7 @@ class PermissionServiceConnector(
      * @param userId ID del usuario
      * @return PermissionCheckResponse con hasPermission y role
      */
-    fun checkPermission(snippetId: Long, userId: String): PermissionCheckResponse {
+    fun checkPermission(snippetId: String, userId: String): PermissionCheckResponse {
         logger.debug("Checking permission for snippetId: {}, userId: {}", snippetId, userId)
 
         return try {
@@ -77,7 +77,7 @@ class PermissionServiceConnector(
         }
     }
 
-    fun hasPermission(snippetId: Long, userId: String): Boolean {
+    fun hasPermission(snippetId: String, userId: String): Boolean {
         logger.debug("Checking if user {} has permission on snippet {}", userId, snippetId)
 
         return try {
@@ -98,7 +98,7 @@ class PermissionServiceConnector(
         }
     }
 
-    fun hasWritePermission(snippetId: Long, userId: String): Boolean {
+    fun hasWritePermission(snippetId: String, userId: String): Boolean {
         logger.debug("Checking if user {} has write permission on snippet {}", userId, snippetId)
 
         return try {
@@ -123,7 +123,7 @@ class PermissionServiceConnector(
      * @param userId ID del usuario
      * @return Lista de IDs de snippets permitidos
      */
-    fun getUserPermittedSnippets(userId: String): List<Long> {
+    fun getUserPermittedSnippets(userId: String): List<String> {
         logger.debug("Fetching all permitted snippets for user: {}", userId)
 
         return try {
@@ -147,7 +147,7 @@ class PermissionServiceConnector(
      * Elimina todos los permisos de un snippet
      * @param snippetId ID del snippet
      */
-    fun deleteSnippetPermissions(snippetId: Long) {
+    fun deleteSnippetPermissions(snippetId: String) {
         logger.debug("Deleting all permissions for snippet: {}", snippetId)
 
         try {

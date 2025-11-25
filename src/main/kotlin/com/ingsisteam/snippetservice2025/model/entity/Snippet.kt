@@ -16,8 +16,8 @@ import java.time.LocalDateTime
 @Table(name = "snippets")
 data class Snippet(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: String = "",
 
     @Column(nullable = false)
     var name: String,

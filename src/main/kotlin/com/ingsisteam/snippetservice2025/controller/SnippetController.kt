@@ -114,7 +114,7 @@ class SnippetController(
         ],
     )
     fun getSnippet(
-        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @Parameter(description = "ID del snippet") @PathVariable id: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
@@ -159,7 +159,7 @@ class SnippetController(
         ],
     )
     fun updateSnippetFromFile(
-        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @Parameter(description = "ID del snippet") @PathVariable id: String,
         @ModelAttribute updateSnippetFileDTO: UpdateSnippetFileDTO,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
@@ -185,7 +185,7 @@ class SnippetController(
         ],
     )
     fun updateSnippet(
-        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @Parameter(description = "ID del snippet") @PathVariable id: String,
         @RequestBody updateSnippetDTO: UpdateSnippetDTO,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SnippetResponseDTO> {
@@ -265,7 +265,7 @@ class SnippetController(
         ],
     )
     fun deleteSnippet(
-        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @Parameter(description = "ID del snippet") @PathVariable id: String,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<SuccessResponse> {
         val userId = getUserId(jwt)
@@ -291,7 +291,7 @@ class SnippetController(
         ],
     )
     fun executeSnippet(
-        @Parameter(description = "ID del snippet") @PathVariable id: Long,
+        @Parameter(description = "ID del snippet") @PathVariable id: String,
         @RequestBody executeSnippetDTO: com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO> {

@@ -19,11 +19,11 @@ import java.time.LocalDateTime
 @Table(name = "snippet_tests")
 data class SnippetTest(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: String = "",
 
     @Column(name = "snippet_id", nullable = false)
-    val snippetId: Long,
+    val snippetId: String,
 
     @Column(nullable = false)
     var name: String,
@@ -49,7 +49,7 @@ data class SnippetTest(
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
     constructor() : this(
-        snippetId = 0L,
+        snippetId = "",
         name = "",
         inputs = emptyList(),
         expectedOutputs = emptyList(),
