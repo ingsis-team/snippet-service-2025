@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
@@ -22,6 +23,7 @@ class SnippetService(
     private val snippetRepository: SnippetRepository,
     private val printScriptServiceConnector: PrintScriptServiceConnector,
     private val permissionServiceConnector: PermissionServiceConnector,
+    private val assetServiceConnector: AssetServiceConnector,
 ) {
     private val logger = LoggerFactory.getLogger(SnippetService::class.java)
 
@@ -52,18 +54,25 @@ class SnippetService(
         // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(content, createSnippetFileDTO.language.name, createSnippetFileDTO.version)
 
-        // Crear el snippet
+        // Crear el snippet (sin content en la base de datos)
         val snippet = Snippet(
             name = createSnippetFileDTO.name,
             description = createSnippetFileDTO.description,
             language = createSnippetFileDTO.language,
-            content = content,
             userId = userId,
             version = createSnippetFileDTO.version,
         )
 
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
+
+        // Store content in asset service
+        if (!assetServiceConnector.storeSnippet(savedSnippet.id, content)) {
+            logger.error("Failed to store snippet content in asset service, rolling back snippet creation")
+            snippetRepository.deleteById(savedSnippet.id)
+            throw RuntimeException("No se pudo almacenar el contenido del snippet en el servicio de assets")
+        }
+        logger.debug("Snippet content stored in asset service: {}", savedSnippet.id)
 
         // Delegate permission creation to Permission Service - CRITICAL: must succeed
         try {
@@ -82,8 +91,9 @@ class SnippetService(
 
             logger.debug("Permission created for snippet: {}", savedSnippet.id)
         } catch (e: Exception) {
-            // Rollback: delete the snippet if permission creation failed
+            // Rollback: delete the snippet and asset if permission creation failed
             logger.error("Permission creation failed for snippet {}: {}, rolling back snippet creation", savedSnippet.id, e.message)
+            assetServiceConnector.deleteSnippet(savedSnippet.id)
             snippetRepository.deleteById(savedSnippet.id)
             throw RuntimeException("No se pudo crear el permiso para el snippet: ${e.message}", e)
         }
@@ -93,17 +103,17 @@ class SnippetService(
             printScriptServiceConnector.triggerAutomaticFormatting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content,
+                content = content,
             )
             printScriptServiceConnector.triggerAutomaticLinting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content,
+                content = content,
             )
             printScriptServiceConnector.triggerAutomaticTesting(
                 snippetId = savedSnippet.id.toString(),
                 userId = userId,
-                content = savedSnippet.content,
+                content = content,
             )
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting/linting/testing is optional
@@ -188,18 +198,25 @@ class SnippetService(
         // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(createSnippetDTO.content, createSnippetDTO.language.name, createSnippetDTO.version)
 
-        // Crear el snippet
+        // Crear el snippet (sin content en la base de datos)
         val snippet = Snippet(
             name = createSnippetDTO.name,
             description = createSnippetDTO.description,
             language = createSnippetDTO.language,
-            content = createSnippetDTO.content,
             userId = userId,
             version = createSnippetDTO.version,
         )
 
         val savedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet created successfully: ID={}, name='{}', user={}", savedSnippet.id, savedSnippet.name, userId)
+
+        // Store content in asset service
+        if (!assetServiceConnector.storeSnippet(savedSnippet.id, createSnippetDTO.content)) {
+            logger.error("Failed to store snippet content in asset service, rolling back snippet creation")
+            snippetRepository.deleteById(savedSnippet.id)
+            throw RuntimeException("No se pudo almacenar el contenido del snippet en el servicio de assets")
+        }
+        logger.debug("Snippet content stored in asset service: {}", savedSnippet.id)
 
         // Delegate permission creation to Permission Service - CRITICAL: must succeed
         try {
@@ -218,10 +235,33 @@ class SnippetService(
 
             logger.debug("Permission created for snippet: {}", savedSnippet.id)
         } catch (e: Exception) {
-            // Rollback: delete the snippet if permission creation failed
+            // Rollback: delete the snippet and asset if permission creation failed
             logger.error("Permission creation failed for snippet {}: {}, rolling back snippet creation", savedSnippet.id, e.message)
+            assetServiceConnector.deleteSnippet(savedSnippet.id)
             snippetRepository.deleteById(savedSnippet.id)
             throw RuntimeException("No se pudo crear el permiso para el snippet: ${e.message}", e)
+        }
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = createSnippetDTO.content,
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = createSnippetDTO.content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = savedSnippet.id.toString(),
+                userId = userId,
+                content = createSnippetDTO.content,
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+            logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
 
         return toResponseDTO(savedSnippet)
@@ -258,8 +298,12 @@ class SnippetService(
         // Delegate syntax validation to PrintScript Service
         validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
 
-        // Update the snippet content
-        snippet.content = content
+        // Update the snippet content in asset service
+        if (!assetServiceConnector.updateSnippet(id, content)) {
+            logger.error("Failed to update snippet content in asset service")
+            throw RuntimeException("No se pudo actualizar el contenido del snippet en el servicio de assets")
+        }
+        logger.debug("Snippet content updated in asset service: {}", id)
 
         // Update name if provided
         updateSnippetFileDTO.name?.let {
@@ -286,17 +330,17 @@ class SnippetService(
             printScriptServiceConnector.triggerAutomaticFormatting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content,
+                content = content,
             )
             printScriptServiceConnector.triggerAutomaticLinting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content,
+                content = content,
             )
             printScriptServiceConnector.triggerAutomaticTesting(
                 snippetId = updatedSnippet.id.toString(),
                 userId = userId,
-                content = updatedSnippet.content,
+                content = content,
             )
         } catch (e: Exception) {
             // Log but don't fail - automatic formatting/linting/testing is optional
@@ -325,6 +369,7 @@ class SnippetService(
         }
 
         // Update content if provided
+        var contentUpdated = false
         updateSnippetDTO.content?.let { newContent ->
             if (newContent.isBlank()) {
                 logger.warn("Empty content for snippet update: {}", id)
@@ -335,7 +380,13 @@ class SnippetService(
             // Delegate syntax validation to PrintScript Service
             validateSyntaxWithExternalService(newContent, snippet.language.name, snippet.version)
 
-            snippet.content = newContent
+            // Update the snippet content in asset service
+            if (!assetServiceConnector.updateSnippet(id, newContent)) {
+                logger.error("Failed to update snippet content in asset service")
+                throw RuntimeException("No se pudo actualizar el contenido del snippet en el servicio de assets")
+            }
+            logger.debug("Snippet content updated in asset service: {}", id)
+            contentUpdated = true
         }
 
         // Update name if provided
@@ -359,22 +410,22 @@ class SnippetService(
         logger.info("Snippet {} updated successfully", id)
 
         // Trigger automatic formatting, linting, and testing only if content was updated
-        if (updateSnippetDTO.content != null) {
+        if (contentUpdated && updateSnippetDTO.content != null) {
             try {
                 printScriptServiceConnector.triggerAutomaticFormatting(
                     snippetId = updatedSnippet.id.toString(),
                     userId = userId,
-                    content = updatedSnippet.content,
+                    content = updateSnippetDTO.content,
                 )
                 printScriptServiceConnector.triggerAutomaticLinting(
                     snippetId = updatedSnippet.id.toString(),
                     userId = userId,
-                    content = updatedSnippet.content,
+                    content = updateSnippetDTO.content,
                 )
                 printScriptServiceConnector.triggerAutomaticTesting(
                     snippetId = updatedSnippet.id.toString(),
                     userId = userId,
-                    content = updatedSnippet.content,
+                    content = updateSnippetDTO.content,
                 )
             } catch (e: Exception) {
                 // Log but don't fail - automatic formatting/linting/testing is optional
@@ -400,9 +451,18 @@ class SnippetService(
             throw NoSuchElementException("Snippet con ID $id no encontrado")
         }
 
-        // Delete the snippet
+        // Delete the snippet from the database
         snippetRepository.deleteById(id)
         logger.info("Snippet {} deleted successfully by user: {}", id, userId)
+
+        // Delete the snippet content from asset service
+        try {
+            assetServiceConnector.deleteSnippet(id)
+            logger.debug("Snippet content deleted from asset service: {}", id)
+        } catch (e: Exception) {
+            logger.warn("Could not delete snippet content from asset service {}: {}", id, e.message)
+            // Log warning but don't fail snippet deletion
+        }
 
         // Delete all permissions for this snippet in Permission Service
         try {
@@ -464,9 +524,13 @@ class SnippetService(
         val errors = mutableListOf<String>()
         var inputIndex = 0
 
+        // Retrieve content from asset service
+        val content = assetServiceConnector.getSnippet(id)
+            ?: throw RuntimeException("No se pudo recuperar el contenido del snippet desde el servicio de assets")
+
         try {
             // Parse and execute the snippet line by line
-            val lines = snippet.content.lines()
+            val lines = content.lines()
             logger.debug("Executing {} lines of code", lines.size)
 
             for (line in lines) {
@@ -514,12 +578,19 @@ class SnippetService(
     }
 
     private fun toResponseDTO(snippet: Snippet): SnippetResponseDTO {
+        // Retrieve content from asset service
+        val content = assetServiceConnector.getSnippet(snippet.id)
+            ?: run {
+                logger.warn("Could not retrieve content from asset service for snippet {}", snippet.id)
+                ""
+            }
+
         return SnippetResponseDTO(
             id = snippet.id,
             name = snippet.name,
             description = snippet.description,
             language = snippet.language,
-            content = snippet.content,
+            content = content,
             userId = snippet.userId,
             version = snippet.version,
             createdAt = snippet.createdAt,

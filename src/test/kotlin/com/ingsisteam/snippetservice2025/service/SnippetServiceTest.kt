@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
@@ -47,6 +48,9 @@ class SnippetServiceTest {
     @MockK
     private lateinit var permissionServiceConnector: PermissionServiceConnector
 
+    @MockK
+    private lateinit var assetServiceConnector: AssetServiceConnector
+
     @InjectMockKs
     private lateinit var snippetService: SnippetService
 
@@ -90,6 +94,7 @@ class SnippetServiceTest {
             )
         } returns validationResponse
         every { snippetRepository.save(any()) } returns savedSnippet
+        every { assetServiceConnector.storeSnippet(any(), any()) } returns true
         every {
             permissionServiceConnector.createPermission(
                 snippetId = any(),
@@ -97,14 +102,17 @@ class SnippetServiceTest {
                 role = any(),
             )
         } returns permissionResponse
+        every { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) } returns Unit
+        every { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) } returns Unit
+        every { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) } returns Unit
 
         // When
         val result = snippetService.createSnippet(createSnippetDTO, userId)
 
         // Then
         assertEquals("testSnippet", result.name)
-        assertEquals("content", result.content)
         verify(exactly = 1) { snippetRepository.save(any()) }
+        verify(exactly = 1) { assetServiceConnector.storeSnippet("1", "content") }
         verify(exactly = 1) { permissionServiceConnector.createPermission("1", userId, "OWNER") }
     }
 
@@ -148,6 +156,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { assetServiceConnector.getSnippet(snippetId) } returns "content"
 
         // When
         val result = snippetService.getSnippet(snippetId, userId)
@@ -155,6 +164,7 @@ class SnippetServiceTest {
         // Then
         assertEquals(snippetId, result.id)
         assertEquals("testSnippet", result.name)
+        assertEquals("content", result.content)
     }
 
     @Test
@@ -181,6 +191,7 @@ class SnippetServiceTest {
         every { permissionServiceConnector.checkPermission(snippetId, userId) } returns permissionCheck
         every { snippetRepository.existsById(snippetId) } returns true
         every { snippetRepository.deleteById(snippetId) } returns Unit
+        every { assetServiceConnector.deleteSnippet(snippetId) } returns true
         every { permissionServiceConnector.deleteSnippetPermissions(snippetId) } returns Unit
 
         // When
@@ -188,6 +199,7 @@ class SnippetServiceTest {
 
         // Then
         verify(exactly = 1) { snippetRepository.deleteById(snippetId) }
+        verify(exactly = 1) { assetServiceConnector.deleteSnippet(snippetId) }
         verify(exactly = 1) { permissionServiceConnector.deleteSnippetPermissions(snippetId) }
     }
 
@@ -250,6 +262,7 @@ class SnippetServiceTest {
             )
         } returns validationResponse
         every { snippetRepository.save(any()) } returns savedSnippet
+        every { assetServiceConnector.storeSnippet(any(), any()) } returns true
         every {
             permissionServiceConnector.createPermission(
                 snippetId = any(),
@@ -266,8 +279,8 @@ class SnippetServiceTest {
 
         // Then
         assertEquals("fileSnippet", result.name)
-        assertEquals(fileContent, result.content)
         verify(exactly = 1) { snippetRepository.save(any()) }
+        verify(exactly = 1) { assetServiceConnector.storeSnippet("2", fileContent) }
         verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
         verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
         verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
@@ -429,6 +442,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns permittedIds
         every { snippetRepository.findAllById(permittedIds) } returns allSnippets
+        every { assetServiceConnector.getSnippet(any()) } returns "content"
 
         // When
         val result = snippetService.getAllSnippets(userId)
@@ -453,6 +467,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns permittedIds
         every { snippetRepository.findAllById(permittedIds) } returns allSnippets
+        every { assetServiceConnector.getSnippet(any()) } returns "content"
 
         // When
         val result = snippetService.getAllSnippets(userId, "snippet A")
@@ -472,6 +487,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns emptyList() // Simulate no permissions
         every { snippetRepository.findByUserId(userId) } returns listOf(ownSnippet1, ownSnippet2)
+        every { assetServiceConnector.getSnippet(any()) } returns "content"
 
         // When
         val result = snippetService.getAllSnippets(userId)
@@ -490,6 +506,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns emptyList()
         every { snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, "snippet A") } returns listOf(ownSnippet1)
+        every { assetServiceConnector.getSnippet(any()) } returns "content"
 
         // When
         val result = snippetService.getAllSnippets(userId, "snippet A")
@@ -508,6 +525,7 @@ class SnippetServiceTest {
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } throws RuntimeException("Permission service unavailable")
         every { snippetRepository.findByUserId(userId) } returns listOf(ownSnippet1, ownSnippet2) // Should fall back to own snippets
+        every { assetServiceConnector.getSnippet(any()) } returns "content"
 
         // When
         val result = snippetService.getAllSnippets(userId)
@@ -567,6 +585,8 @@ class SnippetServiceTest {
                 version = originalSnippet.version,
             )
         } returns validationResponse
+        every { assetServiceConnector.updateSnippet(snippetId, updatedFileContent) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns updatedFileContent
         every { snippetRepository.save(any<Snippet>()) } returns updatedSnippet // Use any<Snippet>()
         every { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) } returns Unit
         every { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) } returns Unit
@@ -733,6 +753,8 @@ class SnippetServiceTest {
                 version = originalSnippet.version,
             )
         } returns validationResponse
+        every { assetServiceConnector.updateSnippet(snippetId, updatedContent) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns updatedContent
         every { snippetRepository.save(any<Snippet>()) } returns updatedSnippet
         every { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) } returns Unit
         every { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) } returns Unit
@@ -886,6 +908,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"Hello\");\nprintln('World');"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)
@@ -915,6 +938,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "readInput();\nreadInput();"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)
@@ -944,6 +968,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"Enter value:\");\nreadInput();\nprintln(\"Result:\");\nprintln(readInput());"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)
@@ -1015,6 +1040,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "readInput();\nreadInput();"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)
@@ -1045,6 +1071,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(someVariable);\nprintln(\"literal string\");\nprintln('another literal');"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)
@@ -1074,6 +1101,7 @@ class SnippetServiceTest {
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"Start\");\nreadInput();\nprintln(nonExistentFunction());\nreadInput();\nprintln(\"End\");"
 
         // When
         val result = snippetService.executeSnippet(snippetId, executeSnippetDTO, userId)

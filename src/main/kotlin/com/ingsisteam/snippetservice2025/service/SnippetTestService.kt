@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
@@ -22,6 +23,7 @@ class SnippetTestService(
     private val snippetRepository: SnippetRepository,
     private val permissionServiceConnector: PermissionServiceConnector,
     private val printScriptServiceConnector: PrintScriptServiceConnector,
+    private val assetServiceConnector: AssetServiceConnector,
 ) {
     private val logger = LoggerFactory.getLogger(SnippetTestService::class.java)
 
@@ -216,12 +218,16 @@ class SnippetTestService(
         // 2. Replace them with input values
         // 3. Execute and capture println() outputs
 
+        // Retrieve content from asset service
+        val content = assetServiceConnector.getSnippet(snippet.id)
+            ?: throw RuntimeException("No se pudo recuperar el contenido del snippet desde el servicio de assets")
+
         // For now, we simulate a simple execution:
         // We assume the snippet only has println() without readInput()
         val outputs = mutableListOf<String>()
 
         // Split content into lines and search for println()
-        val lines = snippet.content.lines()
+        val lines = content.lines()
         for (line in lines) {
             val trimmed = line.trim()
             if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
