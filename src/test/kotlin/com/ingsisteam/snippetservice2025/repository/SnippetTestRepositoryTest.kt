@@ -39,7 +39,6 @@ class SnippetTestRepositoryTest @Autowired constructor(
             name = "Parent Snippet",
             description = "Description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello\")",
             userId = USER_ID,
             version = "1.0.0",
         )
@@ -49,7 +48,6 @@ class SnippetTestRepositoryTest @Autowired constructor(
             name = "Other Parent Snippet",
             description = "Description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello\")",
             userId = USER_ID,
             version = "1.0.0",
         )
