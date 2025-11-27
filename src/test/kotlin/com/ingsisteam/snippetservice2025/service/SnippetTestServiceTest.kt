@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
@@ -38,8 +39,31 @@ class SnippetTestServiceTest {
     @MockK
     private lateinit var printScriptServiceConnector: PrintScriptServiceConnector
 
+    @MockK
+    private lateinit var assetServiceConnector: AssetServiceConnector
+
     @InjectMockKs
     private lateinit var snippetTestService: SnippetTestService
+
+    private fun buildSnippet(
+        id: String,
+        name: String = "testSnippet",
+        description: String = "description",
+        language: SnippetLanguage = SnippetLanguage.PRINTSCRIPT,
+        userId: String,
+        version: String = "1.0",
+        createdAt: LocalDateTime = LocalDateTime.now(),
+        updatedAt: LocalDateTime = LocalDateTime.now(),
+    ): Snippet = Snippet(
+        id = id,
+        name = name,
+        description = description,
+        language = language,
+        userId = userId,
+        version = version,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
 
     @Test
     fun `test createTest success`() {
@@ -57,7 +81,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -128,7 +151,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -158,7 +180,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -185,7 +206,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -238,7 +258,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),

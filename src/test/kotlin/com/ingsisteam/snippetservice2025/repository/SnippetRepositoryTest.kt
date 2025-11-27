@@ -34,7 +34,6 @@ class SnippetRepositoryTest @Autowired constructor(
             name = "Test Snippet 1",
             description = "Description 1",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello 1\")",
             userId = USER_ID,
             version = "1.0.0",
         )
@@ -42,7 +41,6 @@ class SnippetRepositoryTest @Autowired constructor(
             name = "Test Snippet 2",
             description = "Description 2",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello 2\")",
             userId = USER_ID,
             version = "1.0.0",
         )
@@ -50,7 +48,6 @@ class SnippetRepositoryTest @Autowired constructor(
             name = "Other User Snippet",
             description = "Description for other user",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Other User\")",
             userId = OTHER_USER_ID,
             version = "1.0.0",
         )
@@ -121,7 +118,6 @@ class SnippetRepositoryTest @Autowired constructor(
             name = "New Snippet",
             description = "New Desc",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "new content",
             userId = USER_ID,
             version = "1.0.0",
         )
@@ -139,7 +135,7 @@ class SnippetRepositoryTest @Autowired constructor(
         val originalUpdatedAt = snippetToUpdate.updatedAt // Capture original timestamp before modifications
 
         snippetToUpdate.name = "Updated Snippet Name"
-        snippetToUpdate.content = "Updated content"
+        snippetToUpdate.description = "Updated description"
 
         entityManager.flush() // Ensure changes are flushed before checking updatedAt
         entityManager.clear() // Detach entity to ensure it's reloaded from DB
@@ -149,7 +145,7 @@ class SnippetRepositoryTest @Autowired constructor(
 
         assertNotNull(reloadedSnippet)
         assertEquals("Updated Snippet Name", reloadedSnippet?.name)
-        assertEquals("Updated content", reloadedSnippet?.content)
+        assertEquals("Updated description", reloadedSnippet?.description)
         assertTrue(reloadedSnippet?.updatedAt?.isAfter(originalUpdatedAt) == true)
 
         val found = snippetRepository.findByIdAndUserId(updatedSnippet.id, USER_ID)

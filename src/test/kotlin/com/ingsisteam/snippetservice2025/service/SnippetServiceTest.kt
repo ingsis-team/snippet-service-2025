@@ -54,6 +54,26 @@ class SnippetServiceTest {
     @InjectMockKs
     private lateinit var snippetService: SnippetService
 
+    private fun buildSnippet(
+        id: String = "snippet-id",
+        name: String = "testSnippet",
+        description: String = "description",
+        language: SnippetLanguage = SnippetLanguage.PRINTSCRIPT,
+        userId: String = "user123",
+        version: String = "1.0",
+        createdAt: LocalDateTime = LocalDateTime.now(),
+        updatedAt: LocalDateTime = LocalDateTime.now(),
+    ): Snippet = Snippet(
+        id = id,
+        name = name,
+        description = description,
+        language = language,
+        userId = userId,
+        version = version,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+
     @Test
     fun `test createSnippet success`() {
         // Given
@@ -65,16 +85,12 @@ class SnippetServiceTest {
             version = "1.0",
         )
         val userId = "user123"
-        val savedSnippet = Snippet(
+        val savedSnippet = buildSnippet(
             id = "1",
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
         val permissionResponse = PermissionResponse(
@@ -95,6 +111,7 @@ class SnippetServiceTest {
         } returns validationResponse
         every { snippetRepository.save(any()) } returns savedSnippet
         every { assetServiceConnector.storeSnippet(any(), any()) } returns true
+        every { assetServiceConnector.getSnippet("1") } returns "content"
         every {
             permissionServiceConnector.createPermission(
                 snippetId = any(),
@@ -142,16 +159,11 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "content",
             userId = userId,
-            version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
 
         every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
@@ -233,16 +245,12 @@ class SnippetServiceTest {
             version = "1.0",
         )
         val userId = "user123"
-        val savedSnippet = Snippet(
+        val savedSnippet = buildSnippet(
             id = "2",
             name = "fileSnippet",
             description = "description from file",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = fileContent,
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
         val permissionResponse = PermissionResponse(
@@ -263,6 +271,7 @@ class SnippetServiceTest {
         } returns validationResponse
         every { snippetRepository.save(any()) } returns savedSnippet
         every { assetServiceConnector.storeSnippet(any(), any()) } returns true
+        every { assetServiceConnector.getSnippet("2") } returns fileContent
         every {
             permissionServiceConnector.createPermission(
                 snippetId = any(),
@@ -433,9 +442,9 @@ class SnippetServiceTest {
     fun `test getAllSnippets without name filter, with permissions`() {
         // Given
         val userId = "user123"
-        val ownSnippet1 = Snippet("3", "Own Snippet 1", "desc", SnippetLanguage.PRINTSCRIPT, "content1", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val ownSnippet2 = Snippet("4", "Own Snippet 2", "desc", SnippetLanguage.PRINTSCRIPT, "content2", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val sharedSnippet1 = Snippet("5", "Shared Snippet 1", "desc", SnippetLanguage.PRINTSCRIPT, "content3", "otherUser", "1.0", LocalDateTime.now(), LocalDateTime.now())
+        val ownSnippet1 = buildSnippet(id = "3", name = "Own Snippet 1", description = "desc", userId = userId)
+        val ownSnippet2 = buildSnippet(id = "4", name = "Own Snippet 2", description = "desc", userId = userId)
+        val sharedSnippet1 = buildSnippet(id = "5", name = "Shared Snippet 1", description = "desc", userId = "otherUser")
 
         val permittedIds = listOf(ownSnippet1.id, ownSnippet2.id, sharedSnippet1.id)
         val allSnippets = listOf(ownSnippet1, ownSnippet2, sharedSnippet1)
@@ -458,9 +467,9 @@ class SnippetServiceTest {
     fun `test getAllSnippets with name filter, with permissions`() {
         // Given
         val userId = "user123"
-        val ownSnippet1 = Snippet("3", "Own Snippet A", "desc", SnippetLanguage.PRINTSCRIPT, "content1", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val ownSnippet2 = Snippet("4", "Own Snippet B", "desc", SnippetLanguage.PRINTSCRIPT, "content2", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val sharedSnippet1 = Snippet("5", "Shared Snippet C", "desc", SnippetLanguage.PRINTSCRIPT, "content3", "otherUser", "1.0", LocalDateTime.now(), LocalDateTime.now())
+        val ownSnippet1 = buildSnippet(id = "3", name = "Own Snippet A", description = "desc", userId = userId)
+        val ownSnippet2 = buildSnippet(id = "4", name = "Own Snippet B", description = "desc", userId = userId)
+        val sharedSnippet1 = buildSnippet(id = "5", name = "Shared Snippet C", description = "desc", userId = "otherUser")
 
         val permittedIds = listOf(ownSnippet1.id, ownSnippet2.id, sharedSnippet1.id)
         val allSnippets = listOf(ownSnippet1, ownSnippet2, sharedSnippet1)
@@ -481,9 +490,9 @@ class SnippetServiceTest {
     fun `test getAllSnippets without name filter, no permissions (empty permittedSnippetIds)`() {
         // Given
         val userId = "user123"
-        val ownSnippet1 = Snippet("3", "Own Snippet 1", "desc", SnippetLanguage.PRINTSCRIPT, "content1", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val ownSnippet2 = Snippet("4", "Own Snippet 2", "desc", SnippetLanguage.PRINTSCRIPT, "content2", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val otherUserSnippet = Snippet("6", "Other User Snippet", "desc", SnippetLanguage.PRINTSCRIPT, "content4", "otherUser", "1.0", LocalDateTime.now(), LocalDateTime.now())
+        val ownSnippet1 = buildSnippet(id = "3", name = "Own Snippet 1", description = "desc", userId = userId)
+        val ownSnippet2 = buildSnippet(id = "4", name = "Own Snippet 2", description = "desc", userId = userId)
+        val otherUserSnippet = buildSnippet(id = "6", name = "Other User Snippet", description = "desc", userId = "otherUser")
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns emptyList() // Simulate no permissions
         every { snippetRepository.findByUserId(userId) } returns listOf(ownSnippet1, ownSnippet2)
@@ -502,7 +511,7 @@ class SnippetServiceTest {
     fun `test getAllSnippets with name filter, no permissions (empty permittedSnippetIds)`() {
         // Given
         val userId = "user123"
-        val ownSnippet1 = Snippet("3", "Own Snippet A", "desc", SnippetLanguage.PRINTSCRIPT, "content1", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
+        val ownSnippet1 = buildSnippet(id = "3", name = "Own Snippet A", description = "desc", userId = userId)
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } returns emptyList()
         every { snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, "snippet A") } returns listOf(ownSnippet1)
@@ -520,8 +529,8 @@ class SnippetServiceTest {
     fun `test getAllSnippets when permissionServiceConnector getUserPermittedSnippets throws exception`() {
         // Given
         val userId = "user123"
-        val ownSnippet1 = Snippet("3", "Own Snippet 1", "desc", SnippetLanguage.PRINTSCRIPT, "content1", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
-        val ownSnippet2 = Snippet("4", "Own Snippet 2", "desc", SnippetLanguage.PRINTSCRIPT, "content2", userId, "1.0", LocalDateTime.now(), LocalDateTime.now())
+        val ownSnippet1 = buildSnippet(id = "3", name = "Own Snippet 1", description = "desc", userId = userId)
+        val ownSnippet2 = buildSnippet(id = "4", name = "Own Snippet 2", description = "desc", userId = userId)
 
         every { permissionServiceConnector.getUserPermittedSnippets(userId) } throws RuntimeException("Permission service unavailable")
         every { snippetRepository.findByUserId(userId) } returns listOf(ownSnippet1, ownSnippet2) // Should fall back to own snippets
@@ -557,23 +566,19 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updatedFileContent = "println(\"new content from file\")"
         val mockFile = MockMultipartFile("file", "updated.kts", "text/plain", updatedFileContent.toByteArray())
         val updateSnippetFileDTO = UpdateSnippetFileDTO(
             file = mockFile,
         )
-        val updatedSnippet = originalSnippet.copy(content = updatedFileContent)
+        val updatedSnippet = originalSnippet.copy()
         val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(originalSnippet)
@@ -627,16 +632,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val mockFile = MockMultipartFile("file", "updated.kts", "text/plain", "new content".toByteArray())
         val updateSnippetFileDTO = UpdateSnippetFileDTO(file = mockFile)
@@ -656,16 +657,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val mockFile = MockMultipartFile("file", "empty.kts", "text/plain", ByteArray(0))
         val updateSnippetFileDTO = UpdateSnippetFileDTO(file = mockFile)
@@ -685,16 +682,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updatedFileContent = "invalid code"
         val mockFile = MockMultipartFile("file", "invalid.kts", "text/plain", updatedFileContent.toByteArray())
@@ -728,20 +721,16 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updatedContent = "println(\"new content from editor\")"
         val updateSnippetDTO = UpdateSnippetDTO(content = updatedContent)
-        val updatedSnippet = originalSnippet.copy(content = updatedContent)
+        val updatedSnippet = originalSnippet.copy()
         val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(originalSnippet)
@@ -795,16 +784,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updateSnippetDTO = UpdateSnippetDTO(content = "new content")
 
@@ -823,16 +808,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updateSnippetDTO = UpdateSnippetDTO(content = "")
 
@@ -851,16 +832,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val originalSnippet = Snippet(
+        val originalSnippet = buildSnippet(
             id = snippetId,
             name = "originalSnippet",
             description = "desc",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "old content",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val updatedContent = "invalid code"
         val updateSnippetDTO = UpdateSnippetDTO(content = updatedContent)
@@ -893,16 +870,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello\");\nprintln('World');",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = emptyList())
 
@@ -923,16 +896,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "readInput();\nreadInput();",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = listOf("input1", "input2"))
 
@@ -953,16 +922,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Enter value:\");\nreadInput();\nprintln(\"Result:\");\nprintln(readInput());",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = listOf("user_input_1", "user_input_2"))
 
@@ -998,16 +963,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Hello\");",
             userId = "otherUser",
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = emptyList())
 
@@ -1025,16 +986,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "readInput();\nreadInput();",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = listOf("input1")) // Missing one input
 
@@ -1056,16 +1013,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(someVariable);\nprintln(\"literal string\");\nprintln('another literal');",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = emptyList())
 
@@ -1086,16 +1039,12 @@ class SnippetServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"Start\");\nreadInput();\nprintln(nonExistentFunction());\nreadInput();\nprintln(\"End\");",
             userId = userId,
             version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val executeSnippetDTO = ExecuteSnippetDTO(inputs = listOf("input1")) // Only one input provided
 
