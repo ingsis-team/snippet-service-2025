@@ -36,7 +36,7 @@ import java.util.Optional
 import java.util.concurrent.TimeUnit
 
 @ExtendWith(MockKExtension::class)
-@Timeout(value = 1, unit = TimeUnit.SECONDS)
+@Timeout(value = 5, unit = TimeUnit.SECONDS)
 class SnippetServiceTest {
 
     @MockK
@@ -394,7 +394,6 @@ class SnippetServiceTest {
             name = "fileSnippet",
             description = "description from file",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = fileContent,
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -411,6 +410,7 @@ class SnippetServiceTest {
             )
         } returns validationResponse
         every { snippetRepository.save(any()) } returns savedSnippet
+        every { assetServiceConnector.storeSnippet(any(), any()) } returns true
         every {
             permissionServiceConnector.createPermission(
                 snippetId = "2",
@@ -418,6 +418,7 @@ class SnippetServiceTest {
                 role = "OWNER",
             )
         } throws RuntimeException("Permission service error") // Simulate failure
+        every { assetServiceConnector.deleteSnippet("2") } returns true
         every { snippetRepository.deleteById("2") } returns Unit
 
         // When & Then

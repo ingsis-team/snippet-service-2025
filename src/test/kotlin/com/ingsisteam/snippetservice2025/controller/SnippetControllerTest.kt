@@ -2,6 +2,7 @@ package com.ingsisteam.snippetservice2025.controller
 
 import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
 import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
+import com.ingsisteam.snippetservice2025.exception.UnauthorizedException
 import com.ingsisteam.snippetservice2025.model.dto.CreateSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.SnippetResponseDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.Auth0UserDTO
@@ -256,5 +257,158 @@ class SnippetControllerTest {
 
         assertEquals("Auth0 connection error", exception.message)
         verify(exactly = 1) { shareService.getAvailableUsers(any()) }
+    }
+
+    @Test
+    fun `getSnippet should throw UnauthorizedException when JWT is null`() {
+        assertThrows<UnauthorizedException> {
+            snippetController.getSnippet("1", null)
+        }
+    }
+
+    @Test
+    fun `getSnippet should throw UnauthorizedException for test user`() {
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.getSnippet("1", mockJwt)
+        }
+    }
+
+    @Test
+    fun `createSnippet should throw UnauthorizedException when JWT is null`() {
+        val createSnippetDTO = CreateSnippetDTO(
+            name = "New Snippet",
+            description = "Description of new snippet",
+            language = SnippetLanguage.PRINTSCRIPT,
+            content = "print('Hello, World!')",
+            version = "1.0",
+        )
+        assertThrows<UnauthorizedException> {
+            snippetController.createSnippet(createSnippetDTO, null)
+        }
+    }
+
+    @Test
+    fun `deleteSnippet should throw UnauthorizedException when JWT is null`() {
+        assertThrows<UnauthorizedException> {
+            snippetController.deleteSnippet("1", null)
+        }
+    }
+
+    @Test
+    fun `getAvailableUsers should throw UnauthorizedException when JWT is null`() {
+        assertThrows<UnauthorizedException> {
+            snippetController.getAvailableUsers(null, null)
+        }
+    }
+
+    @Test
+    fun `shareSnippet should throw UnauthorizedException when JWT is null`() {
+        val shareSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.ShareSnippetDTO(
+            snippetId = "1",
+            targetUserId = "user2",
+        )
+        assertThrows<UnauthorizedException> {
+            snippetController.shareSnippet(shareSnippetDTO, null)
+        }
+    }
+
+    @Test
+    fun `executeSnippet should throw UnauthorizedException when JWT is null`() {
+        val executeSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO(
+            inputs = listOf("a"),
+        )
+        assertThrows<UnauthorizedException> {
+            snippetController.executeSnippet("1", executeSnippetDTO, null)
+        }
+    }
+
+    @Test
+    fun `updateSnippet should throw UnauthorizedException when JWT is null`() {
+        val updateSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetDTO(
+            content = "new content",
+        )
+        assertThrows<UnauthorizedException> {
+            snippetController.updateSnippet("1", updateSnippetDTO, null)
+        }
+    }
+
+    @Test
+    fun `createSnippet should throw UnauthorizedException for test user`() {
+        val createSnippetDTO = CreateSnippetDTO(
+            name = "New Snippet",
+            description = "Description of new snippet",
+            language = SnippetLanguage.PRINTSCRIPT,
+            content = "print('Hello, World!')",
+            version = "1.0",
+        )
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.createSnippet(createSnippetDTO, mockJwt)
+        }
+    }
+
+    @Test
+    fun `deleteSnippet should throw UnauthorizedException for test user`() {
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.deleteSnippet("1", mockJwt)
+        }
+    }
+
+    @Test
+    fun `getAvailableUsers should throw UnauthorizedException for test user`() {
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.getAvailableUsers(null, mockJwt)
+        }
+    }
+
+    @Test
+    fun `shareSnippet should throw UnauthorizedException for test user`() {
+        val shareSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.ShareSnippetDTO(
+            snippetId = "1",
+            targetUserId = "user2",
+        )
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.shareSnippet(shareSnippetDTO, mockJwt)
+        }
+    }
+
+    @Test
+    fun `executeSnippet should throw UnauthorizedException for test user`() {
+        val executeSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetDTO(
+            inputs = listOf("a"),
+        )
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.executeSnippet("1", executeSnippetDTO, mockJwt)
+        }
+    }
+
+    @Test
+    fun `updateSnippet should throw UnauthorizedException for test user`() {
+        val updateSnippetDTO = com.ingsisteam.snippetservice2025.model.dto.UpdateSnippetDTO(
+            content = "new content",
+        )
+        val mockJwt = mockk<Jwt> {
+            every { subject } returns "test-user@example.com"
+        }
+        assertThrows<UnauthorizedException> {
+            snippetController.updateSnippet("1", updateSnippetDTO, mockJwt)
+        }
     }
 }
