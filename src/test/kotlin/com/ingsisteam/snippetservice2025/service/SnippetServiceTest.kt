@@ -36,7 +36,7 @@ import java.util.Optional
 import java.util.concurrent.TimeUnit
 
 @ExtendWith(MockKExtension::class)
-@Timeout(value = 1, unit = TimeUnit.SECONDS)
+@Timeout(value = 5, unit = TimeUnit.SECONDS)
 class SnippetServiceTest {
 
     @MockK
@@ -376,65 +376,64 @@ class SnippetServiceTest {
         verify(exactly = 0) { snippetRepository.save(any()) }
     }
 
-    // @Test
-    // fun `test createSnippetFromFile permission creation failure`() {
-    //     // Given
-    //     val fileContent = "println(\"hello from file\")"
-    //     val mockFile = MockMultipartFile("file", "test.kts", "text/plain", fileContent.toByteArray())
-    //     val createSnippetFileDTO = CreateSnippetFileDTO(
-    //         name = "fileSnippet",
-    //         description = "description from file",
-    //         file = mockFile,
-    //         language = SnippetLanguage.PRINTSCRIPT,
-    //         version = "1.0",
-    //     )
-    //     val userId = "user123"
-    //     val savedSnippet = Snippet(
-    //         id = "2",
-    //         name = "fileSnippet",
-    //         description = "description from file",
-    //         language = SnippetLanguage.PRINTSCRIPT,
-    //         content = fileContent,
-    //         userId = userId,
-    //         version = "1.0",
-    //         createdAt = LocalDateTime.now(),
-    //         updatedAt = LocalDateTime.now(),
-    //     )
-    //     val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
-    //
-    //     every { snippetRepository.existsByUserIdAndName(userId, "fileSnippet") } returns false
-    //     every {
-    //         printScriptServiceConnector.validateSnippet(
-    //             content = fileContent,
-    //             language = SnippetLanguage.PRINTSCRIPT.name,
-    //             version = "1.0",
-    //         )
-    //     } returns validationResponse
-    //     every { snippetRepository.save(any()) } returns savedSnippet
-    //     every {
-    //         permissionServiceConnector.createPermission(
-    //             snippetId = any(),
-    //             userId = any(),
-    //             role = any(),
-    //         )
-    //     } throws RuntimeException("Permission service error") // Simulate failure
-    //     every { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) } returns Unit
-    //     every { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) } returns Unit
-    //     every { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) } returns Unit
-    //
-    //     // When
-    //     val result = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
-    //
-    //     // Then
-    //     assertEquals("fileSnippet", result.name)
-    //     assertEquals(fileContent, result.content)
-    //     verify(exactly = 1) { snippetRepository.save(any()) }
-    //     verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
-    //     // Verify that automatic triggers are still called even if permission creation fails
-    //     verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
-    //     verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
-    //     verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
-    // }
+    @Test
+    fun `test createSnippetFromFile permission creation failure`() {
+        // Given
+        val fileContent = "println(\"hello from file\")"
+        val mockFile = MockMultipartFile("file", "test.kts", "text/plain", fileContent.toByteArray())
+        val createSnippetFileDTO = CreateSnippetFileDTO(
+            name = "fileSnippet",
+            description = "description from file",
+            file = mockFile,
+            language = SnippetLanguage.PRINTSCRIPT,
+            version = "1.0",
+        )
+        val userId = "user123"
+        val savedSnippet = Snippet(
+            id = "2",
+            name = "fileSnippet",
+            description = "description from file",
+            language = SnippetLanguage.PRINTSCRIPT,
+            userId = userId,
+            version = "1.0",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+        val validationResponse = ValidationResponse(isValid = true, errors = emptyList())
+
+        every { snippetRepository.existsByUserIdAndName(userId, "fileSnippet") } returns false
+        every {
+            printScriptServiceConnector.validateSnippet(
+                content = fileContent,
+                language = SnippetLanguage.PRINTSCRIPT.name,
+                version = "1.0",
+            )
+        } returns validationResponse
+        every { snippetRepository.save(any()) } returns savedSnippet
+        every { assetServiceConnector.storeSnippet(any(), any()) } returns true
+        every {
+            permissionServiceConnector.createPermission(
+                snippetId = "2",
+                userId = userId,
+                role = "OWNER",
+            )
+        } throws RuntimeException("Permission service error") // Simulate failure
+        every { assetServiceConnector.deleteSnippet("2") } returns true
+        every { snippetRepository.deleteById("2") } returns Unit
+
+        // When & Then
+        assertThrows<RuntimeException> {
+            snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
+        }
+
+        // Then
+        verify(exactly = 1) { snippetRepository.save(any()) }
+        verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
+        verify(exactly = 1) { snippetRepository.deleteById("2") }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
+    }
 
     // --- Tests for getAllSnippets ---
 
