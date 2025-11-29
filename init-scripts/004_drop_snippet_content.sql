@@ -1,3 +1,0 @@
-ALTER TABLE IF EXISTS snippets
-    DROP COLUMN IF EXISTS content;
-

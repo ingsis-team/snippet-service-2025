@@ -1,11 +1,16 @@
 package com.ingsisteam.snippetservice2025.connector
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.ingsisteam.snippetservice2025.model.dto.external.Rule
+import com.ingsisteam.snippetservice2025.model.dto.external.SCAOutput
+import com.ingsisteam.snippetservice2025.model.dto.external.SnippetDTO
+import com.ingsisteam.snippetservice2025.model.dto.external.SnippetOutputDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationError
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResponse
 import com.ingsisteam.snippetservice2025.model.dto.external.ValidationResult
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -131,6 +136,138 @@ class PrintScriptServiceConnector(
                     ),
                 ),
             )
+        }
+    }
+
+    fun formatSnippet(snippetId: String, correlationId: String, language: String, version: String, input: String, userId: String): SnippetOutputDTO {
+        logger.debug("Formatting snippet with PrintScript service: snippetId={}", snippetId)
+
+        return try {
+            val snippetDto = SnippetDTO(
+                snippetId = snippetId,
+                correlationId = correlationId,
+                language = language,
+                version = version,
+                input = input,
+                userId = userId,
+            )
+
+            val result = client.post()
+                .uri("/format")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(snippetDto)
+                .retrieve()
+                .bodyToMono(SnippetOutputDTO::class.java)
+                .block()
+
+            result ?: throw RuntimeException("El servicio de formateo no devolvió una respuesta")
+        } catch (e: Exception) {
+            logger.error("Error formatting snippet: {}", e.message, e)
+            throw RuntimeException("Error al formatear el snippet: ${e.message}", e)
+        }
+    }
+
+    fun lintSnippet(snippetId: String, correlationId: String, language: String, version: String, input: String, userId: String): List<SCAOutput> {
+        logger.debug("Linting snippet with PrintScript service: snippetId={}", snippetId)
+
+        return try {
+            val snippetDto = SnippetDTO(
+                snippetId = snippetId,
+                correlationId = correlationId,
+                language = language,
+                version = version,
+                input = input,
+                userId = userId,
+            )
+
+            val result = client.post()
+                .uri("/lint")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(snippetDto)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<SCAOutput>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error linting snippet: {}", e.message, e)
+            throw RuntimeException("Error al analizar el snippet: ${e.message}", e)
+        }
+    }
+
+    fun getFormattingRules(userId: String, correlationId: String): List<Rule> {
+        logger.debug("Getting formatting rules for user: {}", userId)
+
+        return try {
+            val result = client.get()
+                .uri("/format/{userId}", userId)
+                .header("Correlation-id", correlationId)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error getting formatting rules: {}", e.message, e)
+            throw RuntimeException("Error al obtener reglas de formateo: ${e.message}", e)
+        }
+    }
+
+    fun getLintingRules(userId: String, correlationId: String): List<Rule> {
+        logger.debug("Getting linting rules for user: {}", userId)
+
+        return try {
+            val result = client.get()
+                .uri("/lint/{userId}", userId)
+                .header("Correlation-id", correlationId)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error getting linting rules: {}", e.message, e)
+            throw RuntimeException("Error al obtener reglas de linting: ${e.message}", e)
+        }
+    }
+
+    fun saveFormattingRules(userId: String, correlationId: String, rules: List<Rule>): List<Rule> {
+        logger.debug("Saving formatting rules for user: {}", userId)
+
+        return try {
+            val result = client.put()
+                .uri("/format/{userId}", userId)
+                .header("Correlation-id", correlationId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(rules)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error saving formatting rules: {}", e.message, e)
+            throw RuntimeException("Error al guardar reglas de formateo: ${e.message}", e)
+        }
+    }
+
+    fun saveLintingRules(userId: String, correlationId: String, rules: List<Rule>): List<Rule> {
+        logger.debug("Saving linting rules for user: {}", userId)
+
+        return try {
+            val result = client.put()
+                .uri("/lint/{userId}", userId)
+                .header("Correlation-id", correlationId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(rules)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error saving linting rules: {}", e.message, e)
+            throw RuntimeException("Error al guardar reglas de linting: ${e.message}", e)
         }
     }
 
