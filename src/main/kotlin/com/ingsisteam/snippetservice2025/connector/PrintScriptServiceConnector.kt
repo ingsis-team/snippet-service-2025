@@ -31,7 +31,11 @@ class PrintScriptServiceConnector(
     private val objectMapper = ObjectMapper()
 
     fun validateSnippet(content: String, language: String, version: String): ValidationResponse {
-        logger.debug("Validating snippet with PrintScript service: language={}, version={}", language, version)
+        logger.info("Validating snippet with PrintScript service: language={}, version={}, content length={}, content preview='{}'", 
+            language, version, content.length, content.take(100).replace("\n", "\\n").replace("\r", "\\r"))
+        if (content.isBlank()) {
+            logger.warn("Content is blank or empty!")
+        }
 
         return try {
             // PrintScript service expects just the content string as @RequestBody String
