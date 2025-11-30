@@ -200,7 +200,11 @@ class PrintScriptServiceConnector(
 
         return try {
             val result = client.get()
-                .uri("/format/{userId}", userId)
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/format/{userId}")
+                        .build(userId)
+                }
                 .header("Correlation-id", correlationId)
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
@@ -218,7 +222,11 @@ class PrintScriptServiceConnector(
 
         return try {
             val result = client.get()
-                .uri("/lint/{userId}", userId)
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/lint/{userId}")
+                        .build(userId)
+                }
                 .header("Correlation-id", correlationId)
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
@@ -236,7 +244,11 @@ class PrintScriptServiceConnector(
 
         return try {
             val result = client.put()
-                .uri("/format/{userId}", userId)
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/format/{userId}")
+                        .build(userId)
+                }
                 .header("Correlation-id", correlationId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(rules)
@@ -256,7 +268,11 @@ class PrintScriptServiceConnector(
 
         return try {
             val result = client.put()
-                .uri("/lint/{userId}", userId)
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/lint/{userId}")
+                        .build(userId)
+                }
                 .header("Correlation-id", correlationId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(rules)
