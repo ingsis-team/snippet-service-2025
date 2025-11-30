@@ -211,6 +211,60 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse)
     }
 
+    @ExceptionHandler(PrintScriptServiceException::class)
+    fun handlePrintScriptServiceError(
+        ex: PrintScriptServiceException,
+        request: WebRequest,
+    ): ResponseEntity<ErrorResponse> {
+        val status = when (ex.statusCode) {
+            in 400..499 -> HttpStatus.BAD_REQUEST
+            in 500..599 -> HttpStatus.BAD_GATEWAY
+            else -> HttpStatus.INTERNAL_SERVER_ERROR
+        }
+
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            error = "Error del Servicio PrintScript",
+            message = "Error al ${ex.operation}: ${ex.message}",
+            details = listOfNotNull(
+                ex.statusCode?.let { "Código de estado: $it" },
+                "Operación: ${ex.operation}",
+                ex.cause?.message?.let { "Detalle: $it" },
+            ),
+            path = request.getDescription(false).replace("uri=", ""),
+        )
+
+        logger.error("PrintScript service error during {}: {}", ex.operation, ex.message, ex)
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(ExternalServiceException::class)
+    fun handleExternalServiceError(
+        ex: ExternalServiceException,
+        request: WebRequest,
+    ): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            status = HttpStatus.BAD_GATEWAY.value(),
+            error = "Error de Servicio Externo",
+            message = "Error en ${ex.service} al ${ex.operation}: ${ex.message}",
+            details = listOfNotNull(
+                "Servicio: ${ex.service}",
+                "Operación: ${ex.operation}",
+                ex.cause?.message?.let { "Detalle: $it" },
+            ),
+            path = request.getDescription(false).replace("uri=", ""),
+        )
+
+        logger.error(
+            "External service error - Service: {}, Operation: {}, Message: {}",
+            ex.service,
+            ex.operation,
+            ex.message,
+            ex,
+        )
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorResponse)
+    }
+
     @ExceptionHandler(NoSuchElementException::class)
     fun handleNotFound(
         ex: NoSuchElementException,

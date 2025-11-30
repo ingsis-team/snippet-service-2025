@@ -3,6 +3,7 @@ package com.ingsisteam.snippetservice2025.service
 import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
+import com.ingsisteam.snippetservice2025.model.dto.FormatterRulesFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.Rule
 import com.ingsisteam.snippetservice2025.repository.SnippetRepository
 import org.slf4j.LoggerFactory
@@ -92,6 +93,17 @@ class CodeAnalysisService(
         logger.info("Saving formatting rules for user: {}, rulesCount={}", userId, rules.size)
         val correlationId = UUID.randomUUID().toString()
         return printScriptConnector.saveFormattingRules(userId, correlationId, rules)
+    }
+
+    fun saveFormattingRules(userId: String, dto: FormatterRulesFileDTO): List<Rule> {
+        logger.info("Saving formatting rules (file DTO) for user: {}", userId)
+        val correlationId = UUID.randomUUID().toString()
+        return try {
+            printScriptConnector.saveFormattingRulesFile(userId, correlationId, dto)
+        } catch (e: Exception) {
+            logger.error("Failed to save formatting rules (file DTO) for user {}: {}", userId, e.message)
+            emptyList()
+        }
     }
 
     fun saveLintingRules(userId: String, rules: List<Rule>): List<Rule> {

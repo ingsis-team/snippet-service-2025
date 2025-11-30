@@ -3,9 +3,9 @@ package com.ingsisteam.snippetservice2025.controller
 import com.ingsisteam.snippetservice2025.exception.UnauthorizedException
 import com.ingsisteam.snippetservice2025.model.dto.FormatSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.FormatSnippetResponseDTO
+import com.ingsisteam.snippetservice2025.model.dto.FormatterRulesFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.LintSnippetDTO
 import com.ingsisteam.snippetservice2025.model.dto.LintSnippetResponseDTO
-import com.ingsisteam.snippetservice2025.model.dto.UpdateRulesDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.Rule
 import com.ingsisteam.snippetservice2025.service.CodeAnalysisService
 import io.swagger.v3.oas.annotations.Operation
@@ -18,14 +18,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/code-analysis")
+@RequestMapping("")
 @Tag(name = "Code Analysis Controller", description = "API para formateo y linting de snippets")
 class CodeAnalysisController(
     private val codeAnalysisService: CodeAnalysisService,
@@ -120,7 +119,7 @@ class CodeAnalysisController(
         return ResponseEntity.ok(rules)
     }
 
-    @PutMapping("/rules/format")
+    @PostMapping("/rules/format")
     @Operation(summary = "Guardar reglas de formateo", description = "Guarda las reglas de formateo para el usuario autenticado")
     @ApiResponses(
         value = [
@@ -128,18 +127,18 @@ class CodeAnalysisController(
             ApiResponse(responseCode = "401", description = "No autenticado"),
         ],
     )
-    fun saveFormattingRules(
-        @RequestBody request: UpdateRulesDTO,
+    fun saveFormattingRulesList(
+        @RequestBody rules: List<Rule>,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<Rule>> {
         val userId = getUserId(jwt)
-        logger.info("Saving formatting rules for user: {}, rulesCount={}", userId, request.rules.size)
+        logger.info("Saving formatting rules for user: {}, rulesCount={}", userId, rules.size)
 
-        val savedRules = codeAnalysisService.saveFormattingRules(userId, request.rules)
+        val savedRules = codeAnalysisService.saveFormattingRules(userId, rules)
         return ResponseEntity.ok(savedRules)
     }
 
-    @PutMapping("/rules/lint")
+    @PostMapping("/rules/lint")
     @Operation(summary = "Guardar reglas de linting", description = "Guarda las reglas de linting para el usuario autenticado")
     @ApiResponses(
         value = [
@@ -147,14 +146,33 @@ class CodeAnalysisController(
             ApiResponse(responseCode = "401", description = "No autenticado"),
         ],
     )
-    fun saveLintingRules(
-        @RequestBody request: UpdateRulesDTO,
+    fun saveLintingRulesList(
+        @RequestBody rules: List<Rule>,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<Rule>> {
         val userId = getUserId(jwt)
-        logger.info("Saving linting rules for user: {}, rulesCount={}", userId, request.rules.size)
+        logger.info("Saving linting rules for user: {}, rulesCount={}", userId, rules.size)
 
-        val savedRules = codeAnalysisService.saveLintingRules(userId, request.rules)
+        val savedRules = codeAnalysisService.saveLintingRules(userId, rules)
+        return ResponseEntity.ok(savedRules)
+    }
+
+    @PostMapping("/format/save-rules")
+    @Operation(summary = "Guardar reglas de formateo (file DTO)", description = "Guarda las reglas de formateo para el usuario autenticado usando FormatterRulesFileDTO")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Reglas guardadas exitosamente"),
+            ApiResponse(responseCode = "401", description = "No autenticado"),
+        ],
+    )
+    fun saveFormattingRules(
+        @RequestBody request: FormatterRulesFileDTO,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<List<Rule>> {
+        val userId = getUserId(jwt)
+        logger.info("Saving formatting rules (file DTO) for user: {}, rulesPayloadPresent=true", userId)
+
+        val savedRules = codeAnalysisService.saveFormattingRules(userId, request)
         return ResponseEntity.ok(savedRules)
     }
 }

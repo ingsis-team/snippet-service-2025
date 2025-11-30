@@ -1,6 +1,8 @@
 package com.ingsisteam.snippetservice2025.connector
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.ingsisteam.snippetservice2025.exception.PrintScriptServiceException
+import com.ingsisteam.snippetservice2025.model.dto.FormatterRulesFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.external.Rule
 import com.ingsisteam.snippetservice2025.model.dto.external.SCAOutput
 import com.ingsisteam.snippetservice2025.model.dto.external.SnippetDTO
@@ -100,7 +102,7 @@ class PrintScriptServiceConnector(
                 } else {
                     "Error del servicio de validación: ${e.statusCode.value()}"
                 }
-            } catch (parseEx: Exception) {
+            } catch (_: Exception) {
                 // If we can't parse it, provide a clear message based on status code
                 when (e.statusCode.value()) {
                     401 -> "El servicio de validación requiere autenticación"
@@ -160,10 +162,37 @@ class PrintScriptServiceConnector(
                 .bodyToMono(SnippetOutputDTO::class.java)
                 .block()
 
-            result ?: throw RuntimeException("El servicio de formateo no devolvió una respuesta")
+            result ?: throw PrintScriptServiceException(
+                message = "El servicio no devolvió una respuesta",
+                operation = "formatear snippet",
+                statusCode = null,
+            )
+        } catch (e: PrintScriptServiceException) {
+            throw e
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error formatting snippet: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "formatear snippet",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error formatting snippet: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "formatear snippet",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error formatting snippet: {}", e.message, e)
-            throw RuntimeException("Error al formatear el snippet: ${e.message}", e)
+            logger.error("Unexpected error formatting snippet: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "formatear snippet",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
@@ -189,9 +218,30 @@ class PrintScriptServiceConnector(
                 .block()
 
             result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error linting snippet: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "analizar snippet (lint)",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error linting snippet: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "analizar snippet (lint)",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error linting snippet: {}", e.message, e)
-            throw RuntimeException("Error al analizar el snippet: ${e.message}", e)
+            logger.error("Unexpected error linting snippet: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "analizar snippet (lint)",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
@@ -199,21 +249,41 @@ class PrintScriptServiceConnector(
         logger.debug("Getting formatting rules for user: {}", userId)
 
         return try {
+            val path = "/rules/format/$userId"
+            logger.debug("Calling PrintScript GET {}", path)
             val result = client.get()
-                .uri { uriBuilder ->
-                    uriBuilder
-                        .path("/format/{userId}")
-                        .build(userId)
-                }
+                .uri(path)
                 .header("Correlation-id", correlationId)
+                .header("X-User-Id", userId)
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
             result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error getting formatting rules: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "obtener reglas de formateo",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error getting formatting rules: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "obtener reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error getting formatting rules: {}", e.message, e)
-            throw RuntimeException("Error al obtener reglas de formateo: ${e.message}", e)
+            logger.error("Unexpected error getting formatting rules: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "obtener reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
@@ -221,21 +291,41 @@ class PrintScriptServiceConnector(
         logger.debug("Getting linting rules for user: {}", userId)
 
         return try {
+            val path = "/rules/lint/$userId"
+            logger.debug("Calling PrintScript GET {}", path)
             val result = client.get()
-                .uri { uriBuilder ->
-                    uriBuilder
-                        .path("/lint/{userId}")
-                        .build(userId)
-                }
+                .uri(path)
                 .header("Correlation-id", correlationId)
+                .header("X-User-Id", userId)
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
             result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error getting linting rules: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "obtener reglas de linting",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error getting linting rules: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "obtener reglas de linting",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error getting linting rules: {}", e.message, e)
-            throw RuntimeException("Error al obtener reglas de linting: ${e.message}", e)
+            logger.error("Unexpected error getting linting rules: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "obtener reglas de linting",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
@@ -243,13 +333,12 @@ class PrintScriptServiceConnector(
         logger.debug("Saving formatting rules for user: {}", userId)
 
         return try {
-            val result = client.put()
-                .uri { uriBuilder ->
-                    uriBuilder
-                        .path("/format/{userId}")
-                        .build(userId)
-                }
+            val path = "/rules/format/$userId"
+            logger.debug("Calling PrintScript POST {} with rulesCount={}", path, rules.size)
+            val result = client.post()
+                .uri(path)
                 .header("Correlation-id", correlationId)
+                .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(rules)
                 .retrieve()
@@ -257,9 +346,30 @@ class PrintScriptServiceConnector(
                 .block()
 
             result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error saving formatting rules: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "guardar reglas de formateo",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error saving formatting rules: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "guardar reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error saving formatting rules: {}", e.message, e)
-            throw RuntimeException("Error al guardar reglas de formateo: ${e.message}", e)
+            logger.error("Unexpected error saving formatting rules: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "guardar reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
@@ -267,13 +377,12 @@ class PrintScriptServiceConnector(
         logger.debug("Saving linting rules for user: {}", userId)
 
         return try {
-            val result = client.put()
-                .uri { uriBuilder ->
-                    uriBuilder
-                        .path("/lint/{userId}")
-                        .build(userId)
-                }
+            val path = "/rules/lint/$userId"
+            logger.debug("Calling PrintScript POST {} with rulesCount={}", path, rules.size)
+            val result = client.post()
+                .uri(path)
                 .header("Correlation-id", correlationId)
+                .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(rules)
                 .retrieve()
@@ -281,9 +390,74 @@ class PrintScriptServiceConnector(
                 .block()
 
             result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error saving linting rules: {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "guardar reglas de linting",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error saving linting rules: {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "guardar reglas de linting",
+                statusCode = null,
+                cause = e,
+            )
         } catch (e: Exception) {
-            logger.error("Error saving linting rules: {}", e.message, e)
-            throw RuntimeException("Error al guardar reglas de linting: ${e.message}", e)
+            logger.error("Unexpected error saving linting rules: {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "guardar reglas de linting",
+                statusCode = null,
+                cause = e,
+            )
+        }
+    }
+
+    fun saveFormattingRulesFile(userId: String, correlationId: String, dto: FormatterRulesFileDTO): List<Rule> {
+        logger.debug("Saving formatting rules (file DTO) for user: {}", userId)
+
+        return try {
+            val path = "/rules/format/$userId"
+            logger.debug("Calling PrintScript POST {} with FormatterRulesFileDTO", path)
+            val result = client.post()
+                .uri(path)
+                .header("Correlation-id", correlationId)
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(dto)
+                .retrieve()
+                .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
+                .block()
+
+            result ?: emptyList()
+        } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
+            logger.error("Error saving formatting rules (file DTO): {} - {}", e.statusCode, e.responseBodyAsString)
+            throw PrintScriptServiceException(
+                message = "Error HTTP ${e.statusCode.value()}: ${e.statusText}",
+                operation = "guardar reglas de formateo",
+                statusCode = e.statusCode.value(),
+                cause = e,
+            )
+        } catch (e: org.springframework.web.reactive.function.client.WebClientRequestException) {
+            logger.error("Connection error saving formatting rules (file DTO): {}", e.message)
+            throw PrintScriptServiceException(
+                message = "No se pudo conectar al servicio de PrintScript",
+                operation = "guardar reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
+        } catch (e: Exception) {
+            logger.error("Unexpected error saving formatting rules (file DTO): {}", e.message, e)
+            throw PrintScriptServiceException(
+                message = e.message ?: "Error inesperado",
+                operation = "guardar reglas de formateo",
+                statusCode = null,
+                cause = e,
+            )
         }
     }
 
