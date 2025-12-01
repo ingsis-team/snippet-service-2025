@@ -175,4 +175,28 @@ class SnippetTestController(
         logger.info("Test {} executed: {}", testId, if (result["passed"] as Boolean) "PASSED" else "FAILED")
         return ResponseEntity.ok(result)
     }
+
+    @PostMapping("/run-all")
+    @Operation(
+        summary = "Ejecutar todos los tests de un snippet",
+        description = "Ejecuta todos los tests configurados para un snippet y devuelve los resultados",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Tests ejecutados exitosamente"),
+            ApiResponse(responseCode = "401", description = "Usuario no autenticado"),
+            ApiResponse(responseCode = "403", description = "Sin permisos para ejecutar tests de este snippet"),
+            ApiResponse(responseCode = "404", description = "Snippet no encontrado"),
+        ],
+    )
+    fun runAllTests(
+        @Parameter(description = "ID del snippet") @PathVariable snippetId: String,
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.RunAllTestsResponseDTO> {
+        val userId = getUserId(jwt)
+        logger.info("Running all tests for snippet {} by user: {}", snippetId, userId)
+        val result = snippetTestService.runAllTests(snippetId, userId)
+        logger.info("All tests executed: {}/{} passed", result.passedTests, result.totalTests)
+        return ResponseEntity.ok(result)
+    }
 }

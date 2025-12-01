@@ -40,8 +40,10 @@ class CodeAnalysisService(
             userId = userId,
         )
 
+        assetServiceConnector.updateSnippet(snippetId.toString(), result.snippet)
+
         logger.info("Snippet formatted successfully: snippetId={}", snippetId)
-        return result.output
+        return result.snippet
     }
 
     fun lintSnippet(snippetId: UUID, userId: String): List<com.ingsisteam.snippetservice2025.model.dto.LintIssue> {
@@ -110,5 +112,104 @@ class CodeAnalysisService(
         logger.info("Saving linting rules for user: {}, rulesCount={}", userId, rules.size)
         val correlationId = UUID.randomUUID().toString()
         return printScriptConnector.saveLintingRules(userId, correlationId, rules)
+    }
+
+    fun formatAllUserSnippets(userId: String): com.ingsisteam.snippetservice2025.model.dto.FormatAllSnippetsResponseDTO {
+        logger.info("Formatting all snippets for user: {}", userId)
+
+        // Get all snippets where user is OWNER
+        val ownedSnippets = snippetRepository.findByUserId(userId)
+        logger.info("Found {} owned snippets for user: {}", ownedSnippets.size, userId)
+
+        val results = mutableListOf<com.ingsisteam.snippetservice2025.model.dto.FormatResult>()
+        var successCount = 0
+        var failCount = 0
+
+        ownedSnippets.forEach { snippet ->
+            try {
+                logger.debug("Formatting snippet: {}", snippet.id)
+                formatSnippet(UUID.fromString(snippet.id), userId)
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.FormatResult(
+                        snippetId = snippet.id,
+                        snippetName = snippet.name,
+                        success = true,
+                    ),
+                )
+                successCount++
+            } catch (e: Exception) {
+                logger.warn("Failed to format snippet {}: {}", snippet.id, e.message)
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.FormatResult(
+                        snippetId = snippet.id,
+                        snippetName = snippet.name,
+                        success = false,
+                        errorMessage = e.message ?: "Error desconocido",
+                    ),
+                )
+                failCount++
+            }
+        }
+
+        logger.info("Formatting completed: {}/{} successful", successCount, ownedSnippets.size)
+        return com.ingsisteam.snippetservice2025.model.dto.FormatAllSnippetsResponseDTO(
+            totalSnippets = ownedSnippets.size,
+            successfullyFormatted = successCount,
+            failed = failCount,
+            results = results,
+        )
+    }
+
+    fun lintAllUserSnippets(userId: String): com.ingsisteam.snippetservice2025.model.dto.LintAllSnippetsResponseDTO {
+        logger.info("Linting all snippets for user: {}", userId)
+
+        // Get all snippets where user is OWNER
+        val ownedSnippets = snippetRepository.findByUserId(userId)
+        logger.info("Found {} owned snippets for user: {}", ownedSnippets.size, userId)
+
+        val results = mutableListOf<com.ingsisteam.snippetservice2025.model.dto.LintResult>()
+        var snippetsWithIssues = 0
+        var snippetsWithoutIssues = 0
+
+        ownedSnippets.forEach { snippet ->
+            try {
+                logger.debug("Linting snippet: {}", snippet.id)
+                val issues = lintSnippet(UUID.fromString(snippet.id), userId)
+
+                if (issues.isNotEmpty()) {
+                    snippetsWithIssues++
+                } else {
+                    snippetsWithoutIssues++
+                }
+
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.LintResult(
+                        snippetId = snippet.id,
+                        snippetName = snippet.name,
+                        issuesCount = issues.size,
+                        issues = issues,
+                    ),
+                )
+            } catch (e: Exception) {
+                logger.warn("Failed to lint snippet {}: {}", snippet.id, e.message)
+                // En caso de error, se considera como snippet sin issues procesados
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.LintResult(
+                        snippetId = snippet.id,
+                        snippetName = snippet.name,
+                        issuesCount = 0,
+                        issues = emptyList(),
+                    ),
+                )
+            }
+        }
+
+        logger.info("Linting completed: {} with issues, {} without issues", snippetsWithIssues, snippetsWithoutIssues)
+        return com.ingsisteam.snippetservice2025.model.dto.LintAllSnippetsResponseDTO(
+            totalSnippets = ownedSnippets.size,
+            snippetsWithIssues = snippetsWithIssues,
+            snippetsWithoutIssues = snippetsWithoutIssues,
+            results = results,
+        )
     }
 }

@@ -157,6 +157,50 @@ class CodeAnalysisController(
         return ResponseEntity.ok(savedRules)
     }
 
+    @PostMapping("/format/all")
+    @Operation(
+        summary = "Formatear todos los snippets del usuario",
+        description = "Formatea todos los snippets donde el usuario es OWNER según las reglas de formateo configuradas",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Formateo masivo completado"),
+            ApiResponse(responseCode = "401", description = "No autenticado"),
+        ],
+    )
+    fun formatAllSnippets(
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.FormatAllSnippetsResponseDTO> {
+        val userId = getUserId(jwt)
+        logger.info("Formatting all snippets for user: {}", userId)
+
+        val result = codeAnalysisService.formatAllUserSnippets(userId)
+        logger.info("Formatting completed: {}/{} successful", result.successfullyFormatted, result.totalSnippets)
+        return ResponseEntity.ok(result)
+    }
+
+    @PostMapping("/lint/all")
+    @Operation(
+        summary = "Analizar todos los snippets del usuario",
+        description = "Ejecuta el linter en todos los snippets donde el usuario es OWNER según las reglas de linting configuradas",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Linting masivo completado"),
+            ApiResponse(responseCode = "401", description = "No autenticado"),
+        ],
+    )
+    fun lintAllSnippets(
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.LintAllSnippetsResponseDTO> {
+        val userId = getUserId(jwt)
+        logger.info("Linting all snippets for user: {}", userId)
+
+        val result = codeAnalysisService.lintAllUserSnippets(userId)
+        logger.info("Linting completed: {} with issues, {} without issues", result.snippetsWithIssues, result.snippetsWithoutIssues)
+        return ResponseEntity.ok(result)
+    }
+
     @PostMapping("/format/save-rules")
     @Operation(summary = "Guardar reglas de formateo (file DTO)", description = "Guarda las reglas de formateo para el usuario autenticado usando FormatterRulesFileDTO")
     @ApiResponses(

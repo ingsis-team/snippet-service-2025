@@ -157,11 +157,13 @@ class PrintScriptServiceConnector(
             val snippetDto = SnippetDTO(
                 snippetId = snippetId,
                 correlationId = correlationId,
-                language = language,
+                language = language.lowercase(),
                 version = version,
                 input = input,
                 userId = userId,
             )
+
+            logger.debug("Sending format request to PrintScript: {}", snippetDto)
 
             val result = client.post()
                 .uri("/format")
@@ -170,6 +172,8 @@ class PrintScriptServiceConnector(
                 .retrieve()
                 .bodyToMono(SnippetOutputDTO::class.java)
                 .block()
+
+            logger.debug("Received format response from PrintScript: {}", result)
 
             result ?: throw PrintScriptServiceException(
                 message = "El servicio no devolvió una respuesta",
