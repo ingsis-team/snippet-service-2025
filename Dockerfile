@@ -25,6 +25,10 @@ WORKDIR /app
 # Copy JAR from builder stage
 COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
 
+# Copy New Relic agent and config
+COPY --chown=spring:spring newrelic/newrelic.jar /newrelic/newrelic.jar
+COPY --chown=spring:spring newrelic/newrelic.yml /newrelic/newrelic.yml
+
 USER spring
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
