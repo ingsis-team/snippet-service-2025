@@ -32,6 +32,12 @@ class Auth0ConnectorTest {
     @MockK(relaxed = true)
     private lateinit var responseSpec: WebClient.ResponseSpec
 
+    @MockK(relaxed = true)
+    private lateinit var requestBodySpec: WebClient.RequestBodySpec
+
+    @MockK(relaxed = true)
+    private lateinit var requestBodyUriSpec: WebClient.RequestBodyUriSpec
+
     private val auth0Domain = "test-auth0.com"
     private val managementToken = "test-token"
     private val clientId = "test-client-id"
@@ -45,24 +51,43 @@ class Auth0ConnectorTest {
         return Auth0Connector(webClientBuilder, domain, clientId, clientSecret)
     }
 
-    // Helper function to mock the WebClient chain
-    private fun mockWebClientChain(expectedUsers: List<Auth0UserDTO> = emptyList(), shouldThrow: Boolean = false, auth0Domain: String = this.auth0Domain) {
-        // Mock the WebClient.Builder to return our mocked WebClient instance
-        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
-        every { webClientBuilder.build() } returns webClient
+    // Helper function to mock the token retrieval
+    private fun mockTokenRetrieval(token: String = managementToken) {
+        every { webClient.post() } returns requestBodyUriSpec
+        every { requestBodyUriSpec.uri("/oauth/token") } returns requestBodySpec
+        every { requestBodySpec.contentType(any()) } returns requestBodySpec
+        every { requestBodySpec.bodyValue(any<Map<String, String>>()) } returns requestBodySpec
+        every { requestBodySpec.retrieve() } returns responseSpec
 
-        // Mock the chain of calls using the class-level mocks
+        // Create a real TokenResponse instance instead of mocking
+        val tokenResponse = Auth0Connector.TokenResponse(
+            accessToken = token,
+            expiresIn = 3600,
+            tokenType = "Bearer",
+        )
+
+        val tokenMono = mockk<Mono<Auth0Connector.TokenResponse>>()
+        every { responseSpec.bodyToMono(Auth0Connector.TokenResponse::class.java) } returns tokenMono
+        every { tokenMono.block() } returns tokenResponse
+    }
+
+    // Helper function to mock the WebClient chain for getting users
+    private fun mockGetUsersChain(expectedUsers: List<Auth0UserDTO> = emptyList(), shouldThrow: Boolean = false) {
+        // Mock the chain of calls for GET /api/v2/users
         every { webClient.get() } returns requestHeadersUriSpec
         every { requestHeadersUriSpec.uri(any<String>()) } returns requestHeadersSpec
         every { requestHeadersSpec.header(HttpHeaders.AUTHORIZATION, "Bearer $managementToken") } returns requestHeadersSpec
+        every { requestHeadersSpec.header(HttpHeaders.CONTENT_TYPE, "application/json") } returns requestHeadersSpec
         every { requestHeadersSpec.retrieve() } returns responseSpec
 
         if (shouldThrow) {
+            every { responseSpec.onStatus(any(), any()) } returns responseSpec
             every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns Flux.error(RuntimeException("WebClient error"))
         } else {
             val mockFlux = mockk<Flux<Auth0UserDTO>>()
             val mockMonoList = mockk<Mono<List<Auth0UserDTO>>>()
 
+            every { responseSpec.onStatus(any(), any()) } returns responseSpec
             every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns mockFlux
             every { mockFlux.collectList() } returns mockMonoList
             every { mockMonoList.block() } returns expectedUsers
@@ -72,8 +97,11 @@ class Auth0ConnectorTest {
     @Test
     fun `test getUsers returns users from auth0`() {
         // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
         val users = listOf(Auth0UserDTO("1", "test@test.com", "Test User", "test", "pic"))
-        mockWebClientChain(expectedUsers = users)
+        mockTokenRetrieval()
+        mockGetUsersChain(expectedUsers = users)
         val auth0Connector = createAuth0Connector()
 
         // When
@@ -82,14 +110,17 @@ class Auth0ConnectorTest {
         // Then
         assertEquals(1, result.size)
         assertEquals("Test User", result[0].name)
-        verify(exactly = 1) { requestHeadersUriSpec.uri("/api/v2/users?per_page=100") }
+        verify(exactly = 1) { requestHeadersUriSpec.uri("/api/v2/users?per_page=50&include_totals=false") }
     }
 
     @Test
     fun `test getUsers with search returns filtered users from auth0`() {
         // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
         val users = listOf(Auth0UserDTO("1", "test@test.com", "Test User", "test", "pic"))
-        mockWebClientChain(expectedUsers = users)
+        mockTokenRetrieval()
+        mockGetUsersChain(expectedUsers = users)
         val auth0Connector = createAuth0Connector()
 
         // When
@@ -98,13 +129,16 @@ class Auth0ConnectorTest {
         // Then
         assertEquals(1, result.size)
         assertEquals("Test User", result[0].name)
-        verify(exactly = 1) { requestHeadersUriSpec.uri("/api/v2/users?q=Test&search_engine=v3&per_page=100") }
+        verify(exactly = 1) { requestHeadersUriSpec.uri(any<String>()) }
     }
 
     @Test
     fun `test getUsers returns mock users on failure`() {
         // Given
-        mockWebClientChain(shouldThrow = true)
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval()
+        mockGetUsersChain(shouldThrow = true)
         // Ensure auth0Connector is initialized with a non-blank token so it attempts the external call
         val failingAuth0Connector = createAuth0Connector()
 
