@@ -8,8 +8,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
-import java.net.URI
+import java.net.InetAddress
 
 @Service
 class AssetServiceConnector(
@@ -19,18 +20,57 @@ class AssetServiceConnector(
     private val logger = LoggerFactory.getLogger(AssetServiceConnector::class.java)
 
     private val baseUrl: String by lazy {
+        logger.info("Initializing AssetServiceConnector with assetUrl from config: '{}'", assetUrl)
+
         // Ensure the URL has http:// prefix if not already present
-        val url = if (assetUrl.startsWith("http://") || assetUrl.startsWith("https://")) {
+        var url = if (assetUrl.startsWith("http://") || assetUrl.startsWith("https://")) {
+            logger.debug("Asset URL already has protocol prefix: {}", assetUrl)
             assetUrl
         } else {
-            "http://$assetUrl"
+            val urlWithProtocol = "http://$assetUrl"
+            logger.debug("Added http:// prefix to asset URL: {} -> {}", assetUrl, urlWithProtocol)
+            urlWithProtocol
         }
-        logger.info("Asset service base URL configured: {}", url)
+
+        // If hostname contains underscore (invalid in URIs), resolve to IP address
+        try {
+            logger.debug("Parsing URL to extract hostname: {}", url)
+            // Parse URL manually to extract hostname (since URI constructor fails on underscores)
+            val urlPattern = Regex("""(https?://)([^:/]+)(:(\d+))?(/.*)?$""")
+            val match = urlPattern.find(url)
+            if (match != null) {
+                val host = match.groupValues[2]
+                val port = match.groupValues[4].takeIf { it.isNotEmpty() } ?: "80"
+                logger.debug("Extracted hostname: '{}', port: '{}'", host, port)
+
+                if (host.contains("_")) {
+                    logger.info("Hostname '{}' contains underscore (invalid in URIs), resolving to IP address", host)
+                    try {
+                        val ipAddress = InetAddress.getByName(host).hostAddress
+                        logger.info("Successfully resolved hostname '{}' to IP address: {}", host, ipAddress)
+                        url = url.replace(host, ipAddress)
+                        logger.info("Updated URL after hostname resolution: {}", url)
+                    } catch (dnsException: Exception) {
+                        logger.error("DNS resolution failed for hostname '{}': {}", host, dnsException.message, dnsException)
+                        throw dnsException
+                    }
+                } else {
+                    logger.debug("Hostname '{}' does not contain underscore, no resolution needed", host)
+                }
+            } else {
+                logger.warn("Could not parse URL pattern from: {}", url)
+            }
+        } catch (e: Exception) {
+            logger.error("Error during hostname resolution for URL '{}': {}", url, e.message, e)
+            logger.warn("Will attempt to use original URL: {}", url)
+        }
+
+        logger.info("Asset service base URL configured (final): {}", url)
         url
     }
 
     private val client: WebClient by lazy {
-        // Don't set baseUrl - we'll use absolute URIs
+        // Don't set baseUrl - we'll build full URIs using UriComponentsBuilder
         webClient.build()
     }
 
@@ -50,32 +90,94 @@ class AssetServiceConnector(
      * @return true if successful, false otherwise
      */
     fun storeSnippet(snippetId: String, content: String): Boolean {
-        logger.debug("Storing snippet in asset service: snippetId={}", snippetId)
+        logger.info("=== Starting storeSnippet operation ===")
+        logger.info("Parameters: snippetId={}, contentLength={}", snippetId, content.length)
+        logger.debug("Content preview (first 100 chars): {}", content.take(100))
 
         return try {
-            val fullUri = URI("$baseUrl/v1/asset/snippets/$snippetId")
-            logger.debug("PUT request to: {}", fullUri)
-            val responseStatus = client.put()
-                .uri(fullUri)
-                .headers { headers -> currentBearerToken()?.let { headers.setBearerAuth(it) } }
-                .contentType(MediaType.TEXT_PLAIN)
-                .bodyValue(content)
-                .exchangeToMono { clientResponse -> Mono.just(clientResponse.statusCode()) }
-                .block()
+            logger.debug("Building URI from baseUrl: '{}'", baseUrl)
+            logger.debug("Path component: /v1/asset/snippets/{}", snippetId)
+
+            val uri = try {
+                UriComponentsBuilder.fromHttpUrl(baseUrl)
+                    .path("/v1/asset/snippets/$snippetId")
+                    .build()
+                    .toUri()
+            } catch (uriException: Exception) {
+                logger.error(
+                    "Failed to build URI from baseUrl '{}' and path '/v1/asset/snippets/{}': {}",
+                    baseUrl,
+                    snippetId,
+                    uriException.message,
+                    uriException,
+                )
+                throw uriException
+            }
+
+            logger.info("Successfully built URI: {}", uri)
+            logger.debug(
+                "URI scheme: {}, host: {}, port: {}, path: {}",
+                uri.scheme,
+                uri.host,
+                uri.port,
+                uri.path,
+            )
+
+            val bearerToken = currentBearerToken()
+            logger.debug("Bearer token present: {}", bearerToken != null)
+
+            logger.info("Sending PUT request to asset service...")
+            val responseStatus = try {
+                client.put()
+                    .uri(uri)
+                    .headers { headers -> bearerToken?.let { headers.setBearerAuth(it) } }
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .bodyValue(content)
+                    .exchangeToMono { clientResponse ->
+                        logger.debug("Received response with status: {}", clientResponse.statusCode())
+                        Mono.just(clientResponse.statusCode())
+                    }
+                    .block()
+            } catch (requestException: Exception) {
+                logger.error("Request to asset service failed: {}", requestException.message, requestException)
+                logger.error("Request details - URI: {}, Method: PUT, ContentType: TEXT_PLAIN", uri)
+                throw requestException
+            }
+
+            logger.info("Received response status: {}", responseStatus)
 
             when (responseStatus) {
                 HttpStatus.CREATED, HttpStatus.OK -> {
-                    logger.info("Snippet stored successfully in asset service: snippetId={}", snippetId)
+                    logger.info(
+                        "✓ Snippet stored successfully in asset service: snippetId={}, status={}",
+                        snippetId,
+                        responseStatus,
+                    )
                     true
                 }
                 else -> {
-                    logger.error("Failed to store snippet in asset service. Status: {}", responseStatus)
+                    logger.error(
+                        "✗ Failed to store snippet in asset service. Status: {}, snippetId={}",
+                        responseStatus,
+                        snippetId,
+                    )
                     false
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error storing snippet in asset service: snippetId={}, error={}", snippetId, e.message, e)
+            logger.error("✗ Exception during storeSnippet operation", e)
+            logger.error(
+                "Error details - snippetId: {}, error type: {}, message: {}",
+                snippetId,
+                e.javaClass.simpleName,
+                e.message,
+            )
+            if (e.cause != null) {
+                logger.error("Caused by: {} - {}", e.cause!!.javaClass.simpleName, e.cause!!.message)
+            }
             false
+        } finally {
+            logger.info("=== Completed storeSnippet operation ===")
         }
     }
 
@@ -85,27 +187,45 @@ class AssetServiceConnector(
      * @return The snippet content or null if not found
      */
     fun getSnippet(snippetId: String): String? {
-        logger.debug("Retrieving snippet from asset service: snippetId={}", snippetId)
+        logger.info("=== Starting getSnippet operation ===")
+        logger.info("Parameters: snippetId={}", snippetId)
 
         return try {
-            val fullUri = URI("$baseUrl/v1/asset/snippets/$snippetId")
-            logger.debug("GET request to: {}", fullUri)
+            logger.debug("Building URI from baseUrl: '{}'", baseUrl)
+            val uri = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/v1/asset/snippets/$snippetId")
+                .build()
+                .toUri()
+            logger.info("Successfully built URI: {}", uri)
+
+            logger.info("Sending GET request to asset service...")
             val content = client.get()
-                .uri(fullUri)
+                .uri(uri)
                 .headers { headers -> currentBearerToken()?.let { headers.setBearerAuth(it) } }
                 .accept(MediaType.TEXT_PLAIN)
                 .retrieve()
                 .bodyToMono(String::class.java)
                 .block()
 
-            logger.debug("Snippet retrieved successfully from asset service: snippetId={}", snippetId)
+            logger.info(
+                "✓ Snippet retrieved successfully from asset service: snippetId={}, contentLength={}",
+                snippetId,
+                content?.length ?: 0,
+            )
             content
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException.NotFound) {
             logger.warn("Snippet not found in asset service: snippetId={}", snippetId)
             null
         } catch (e: Exception) {
-            logger.error("Error retrieving snippet from asset service: snippetId={}, error={}", snippetId, e.message, e)
+            logger.error(
+                "✗ Error retrieving snippet from asset service: snippetId={}, error={}",
+                snippetId,
+                e.message,
+                e,
+            )
             null
+        } finally {
+            logger.info("=== Completed getSnippet operation ===")
         }
     }
 
@@ -115,30 +235,58 @@ class AssetServiceConnector(
      * @return true if successfully deleted or not found, false on error
      */
     fun deleteSnippet(snippetId: String): Boolean {
-        logger.debug("Deleting snippet from asset service: snippetId={}", snippetId)
+        logger.info("=== Starting deleteSnippet operation ===")
+        logger.info("Parameters: snippetId={}", snippetId)
 
         return try {
-            val fullUri = URI("$baseUrl/v1/asset/snippets/$snippetId")
-            logger.debug("DELETE request to: {}", fullUri)
+            logger.debug("Building URI from baseUrl: '{}'", baseUrl)
+            val uri = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/v1/asset/snippets/$snippetId")
+                .build()
+                .toUri()
+            logger.info("Successfully built URI: {}", uri)
+
+            logger.info("Sending DELETE request to asset service...")
             val responseStatus = client.delete()
-                .uri(fullUri)
+                .uri(uri)
                 .headers { headers -> currentBearerToken()?.let { headers.setBearerAuth(it) } }
-                .exchangeToMono { clientResponse -> Mono.just(clientResponse.statusCode()) }
+                .exchangeToMono { clientResponse ->
+                    logger.debug("Received response with status: {}", clientResponse.statusCode())
+                    Mono.just(clientResponse.statusCode())
+                }
                 .block()
+
+            logger.info("Received response status: {}", responseStatus)
 
             when (responseStatus) {
                 HttpStatus.NO_CONTENT, HttpStatus.NOT_FOUND -> {
-                    logger.info("Snippet deleted from asset service: snippetId={}, status={}", snippetId, responseStatus)
+                    logger.info(
+                        "✓ Snippet deleted from asset service: snippetId={}, status={}",
+                        snippetId,
+                        responseStatus,
+                    )
                     true
                 }
                 else -> {
-                    logger.error("Failed to delete snippet from asset service. Status: {}", responseStatus)
+                    logger.error(
+                        "✗ Failed to delete snippet from asset service. Status: {}, snippetId={}",
+                        responseStatus,
+                        snippetId,
+                    )
                     false
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error deleting snippet from asset service: snippetId={}, error={}", snippetId, e.message, e)
+            logger.error("✗ Exception during deleteSnippet operation", e)
+            logger.error(
+                "Error details - snippetId: {}, error type: {}, message: {}",
+                snippetId,
+                e.javaClass.simpleName,
+                e.message,
+            )
             false
+        } finally {
+            logger.info("=== Completed deleteSnippet operation ===")
         }
     }
 

@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.config.DefaultRulesConfig
 import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
@@ -119,6 +120,9 @@ class SnippetService(
             // Log but don't fail - automatic formatting/linting/testing is optional
             logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
+
+        // Initialize default rules if this is the user's first snippet
+        initializeDefaultRulesIfNeeded(userId)
 
         return toResponseDTO(savedSnippet)
     }
@@ -263,6 +267,9 @@ class SnippetService(
             // Log but don't fail - automatic formatting/linting/testing is optional
             logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
+
+        // Initialize default rules if this is the user's first snippet
+        initializeDefaultRulesIfNeeded(userId)
 
         return toResponseDTO(savedSnippet)
     }
@@ -596,5 +603,60 @@ class SnippetService(
             createdAt = snippet.createdAt,
             updatedAt = snippet.updatedAt,
         )
+    }
+
+    /**
+     * Initialize default formatting and linting rules for a user if they don't have any yet.
+     * This is called when a user creates their first snippet to avoid errors when fetching rules later.
+     */
+    private fun initializeDefaultRulesIfNeeded(userId: String) {
+        try {
+            val correlationId = java.util.UUID.randomUUID().toString()
+
+            // Check if user already has formatting rules
+            val existingFormattingRules = try {
+                printScriptServiceConnector.getFormattingRules(userId, correlationId)
+            } catch (e: Exception) {
+                logger.debug("Error checking existing formatting rules for user {}: {}", userId, e.message)
+                emptyList()
+            }
+
+            // Initialize formatting rules if none exist
+            if (existingFormattingRules.isEmpty()) {
+                logger.info("Initializing default formatting rules for user: {}", userId)
+                val defaultFormattingRules = DefaultRulesConfig.getDefaultFormattingRules()
+                try {
+                    printScriptServiceConnector.saveFormattingRules(userId, correlationId, defaultFormattingRules)
+                    logger.info("Default formatting rules initialized successfully for user: {}", userId)
+                } catch (e: Exception) {
+                    logger.warn("Failed to initialize default formatting rules for user {}: {}", userId, e.message)
+                    // Don't fail snippet creation if rule initialization fails
+                }
+            }
+
+            // Check if user already has linting rules
+            val existingLintingRules = try {
+                printScriptServiceConnector.getLintingRules(userId, correlationId)
+            } catch (e: Exception) {
+                logger.debug("Error checking existing linting rules for user {}: {}", userId, e.message)
+                emptyList()
+            }
+
+            // Initialize linting rules if none exist
+            if (existingLintingRules.isEmpty()) {
+                logger.info("Initializing default linting rules for user: {}", userId)
+                val defaultLintingRules = DefaultRulesConfig.getDefaultLintingRules()
+                try {
+                    printScriptServiceConnector.saveLintingRules(userId, correlationId, defaultLintingRules)
+                    logger.info("Default linting rules initialized successfully for user: {}", userId)
+                } catch (e: Exception) {
+                    logger.warn("Failed to initialize default linting rules for user {}: {}", userId, e.message)
+                    // Don't fail snippet creation if rule initialization fails
+                }
+            }
+        } catch (e: Exception) {
+            // Log but don't fail - rule initialization is optional
+            logger.warn("Error during rule initialization for user {}: {}", userId, e.message)
+        }
     }
 }
