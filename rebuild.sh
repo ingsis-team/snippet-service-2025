@@ -2,8 +2,8 @@
 docker compose down
 
 # 2. Reconstruir imagen de la API sin cache
-# docker compose build --no-cache api
-docker compose build api
+docker compose build --no-cache api
+# docker compose build api
 
 # 3. Levantar todo de nuevo
 docker compose up -d

@@ -21,10 +21,8 @@ data class SnippetOutputDTO(
 
 // DTO para reglas de formateo/linting
 data class Rule(
-    val id: String,
     val name: String,
-    val isActive: Boolean,
-    val value: Any, // Puede ser Boolean, String, etc.
+    val value: Any, // Puede ser Boolean, Int, o String
 )
 
 // DTO para test

@@ -1,6 +1,5 @@
 package com.ingsisteam.snippetservice2025.service
 
-import com.ingsisteam.snippetservice2025.config.DefaultRulesConfig
 import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
@@ -121,66 +120,89 @@ class SnippetService(
             logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
 
-        // Initialize default rules if this is the user's first snippet
-        initializeDefaultRulesIfNeeded(userId)
-
         return toResponseDTO(savedSnippet)
     }
 
-    @Transactional(readOnly = true)
-    fun getSnippet(id: String, userId: String): SnippetResponseDTO {
-        logger.debug("Fetching snippet: {} for user: {}", id, userId)
+    fun updateSnippetFromFile(id: String, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
+        logger.debug("Updating snippet {} from file for user: {}", id, userId)
 
-        // Verificar permisos con Permission Service
-        if (!permissionServiceConnector.hasPermission(id, userId)) {
-            logger.warn("User {} attempted to access snippet {} without permission", userId, id)
-            throw NoSuchElementException("Snippet con ID $id no encontrado o sin permisos")
-        }
-
+        // Verify that the snippet exists
         val snippet = snippetRepository.findById(id).orElse(null)
             ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
 
-        logger.debug("Snippet {} retrieved successfully", id)
-        return toResponseDTO(snippet)
-    }
+        // Verify write permissions with Permission Service
+        if (!permissionServiceConnector.hasWritePermission(id, userId)) {
+            logger.warn("User {} attempted to update snippet {} without write permission", userId, id)
+            throw IllegalAccessException("No tienes permisos de escritura para este snippet")
+        }
 
-    @Transactional(readOnly = true)
-    fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
-        logger.debug("Fetching all snippets for user: {}{}", userId, if (nameFilter != null) " with filter: $nameFilter" else "")
+        // Validate that the file is not empty
+        if (updateSnippetFileDTO.file.isEmpty) {
+            logger.warn("Empty file uploaded for snippet update: {}", id)
+            throw IllegalArgumentException("El archivo no puede estar vacío")
+        }
 
-        // Obtener todos los snippets a los que el usuario tiene acceso desde Permission Service
-        val permittedSnippetIds = try {
-            permissionServiceConnector.getUserPermittedSnippets(userId)
+        // Read the file content
+        val content = try {
+            String(updateSnippetFileDTO.file.bytes, Charsets.UTF_8)
         } catch (e: Exception) {
-            logger.error("Error fetching permitted snippets for user {}: {}", userId, e.message, e)
-            // Fallback: solo mostrar snippets propios
-            emptyList<String>()
+            logger.error("Error reading file for snippet update {}: {}", id, e.message)
+            throw IllegalArgumentException("Error al leer el archivo: ${e.message}")
         }
 
-        logger.debug("User {} has access to {} snippets via permissions", userId, permittedSnippetIds.size)
+        logger.debug("Validating syntax for snippet update: {}", id)
+        // Delegate syntax validation to PrintScript Service
+        validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
 
-        // Buscar snippets: propios + compartidos
-        val snippets = if (permittedSnippetIds.isEmpty()) {
-            // Si no hay permisos desde el servicio, solo mostrar snippets propios
-            if (nameFilter.isNullOrBlank()) {
-                snippetRepository.findByUserId(userId)
-            } else {
-                snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
-            }
-        } else {
-            // Obtener snippets por IDs permitidos
-            val allPermittedSnippets = snippetRepository.findAllById(permittedSnippetIds)
+        // Update the snippet content in asset service
+        if (!assetServiceConnector.updateSnippet(id, content)) {
+            logger.error("Failed to update snippet content in asset service")
+            throw RuntimeException("No se pudo actualizar el contenido del snippet en el servicio de assets")
+        }
+        logger.debug("Snippet content updated in asset service: {}", id)
 
-            // Aplicar filtro de nombre si existe
-            if (nameFilter.isNullOrBlank()) {
-                allPermittedSnippets
-            } else {
-                allPermittedSnippets.filter { it.name.contains(nameFilter, ignoreCase = true) }
+        // Update name if provided
+        updateSnippetFileDTO.name?.let {
+            if (it.isNotBlank()) {
+                // Verificar que no exista otro snippet con el mismo nombre para este usuario (excepto el actual)
+                if (snippetRepository.existsByUserIdAndName(userId, it) && snippet.name != it) {
+                    logger.warn("Duplicate snippet name '{}' for user: {}", it, userId)
+                    throw IllegalArgumentException("Ya existe un snippet con el nombre '$it'")
+                }
+                snippet.name = it
             }
         }
 
-        logger.debug("Returning {} snippets for user: {}", snippets.size, userId)
-        return snippets.map { toResponseDTO(it) }
+        // Update description if provided
+        updateSnippetFileDTO.description?.let {
+            snippet.description = it
+        }
+
+        val updatedSnippet = snippetRepository.save(snippet)
+        logger.info("Snippet {} updated successfully", id)
+
+        // Trigger automatic formatting, linting, and testing
+        try {
+            printScriptServiceConnector.triggerAutomaticFormatting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = content,
+            )
+            printScriptServiceConnector.triggerAutomaticLinting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = content,
+            )
+            printScriptServiceConnector.triggerAutomaticTesting(
+                snippetId = updatedSnippet.id.toString(),
+                userId = userId,
+                content = content,
+            )
+        } catch (e: Exception) {
+            // Log but don't fail - automatic formatting/linting/testing is optional
+        }
+
+        return toResponseDTO(updatedSnippet)
     }
 
     fun createSnippet(createSnippetDTO: CreateSnippetDTO, userId: String): SnippetResponseDTO {
@@ -268,92 +290,7 @@ class SnippetService(
             logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
 
-        // Initialize default rules if this is the user's first snippet
-        initializeDefaultRulesIfNeeded(userId)
-
         return toResponseDTO(savedSnippet)
-    }
-
-    fun updateSnippetFromFile(id: String, updateSnippetFileDTO: UpdateSnippetFileDTO, userId: String): SnippetResponseDTO {
-        logger.debug("Updating snippet {} from file for user: {}", id, userId)
-
-        // Verify that the snippet exists
-        val snippet = snippetRepository.findById(id).orElse(null)
-            ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
-
-        // Verify write permissions with Permission Service
-        if (!permissionServiceConnector.hasWritePermission(id, userId)) {
-            logger.warn("User {} attempted to update snippet {} without write permission", userId, id)
-            throw IllegalAccessException("No tienes permisos de escritura para este snippet")
-        }
-
-        // Validate that the file is not empty
-        if (updateSnippetFileDTO.file.isEmpty) {
-            logger.warn("Empty file uploaded for snippet update: {}", id)
-            throw IllegalArgumentException("El archivo no puede estar vacío")
-        }
-
-        // Read the file content
-        val content = try {
-            String(updateSnippetFileDTO.file.bytes, Charsets.UTF_8)
-        } catch (e: Exception) {
-            logger.error("Error reading file for snippet update {}: {}", id, e.message)
-            throw IllegalArgumentException("Error al leer el archivo: ${e.message}")
-        }
-
-        logger.debug("Validating syntax for snippet update: {}", id)
-        // Delegate syntax validation to PrintScript Service
-        validateSyntaxWithExternalService(content, snippet.language.name, snippet.version)
-
-        // Update the snippet content in asset service
-        if (!assetServiceConnector.updateSnippet(id, content)) {
-            logger.error("Failed to update snippet content in asset service")
-            throw RuntimeException("No se pudo actualizar el contenido del snippet en el servicio de assets")
-        }
-        logger.debug("Snippet content updated in asset service: {}", id)
-
-        // Update name if provided
-        updateSnippetFileDTO.name?.let {
-            if (it.isNotBlank()) {
-                // Verificar que no exista otro snippet con el mismo nombre para este usuario (excepto el actual)
-                if (snippetRepository.existsByUserIdAndName(userId, it) && snippet.name != it) {
-                    logger.warn("Duplicate snippet name '{}' for user: {}", it, userId)
-                    throw IllegalArgumentException("Ya existe un snippet con el nombre '$it'")
-                }
-                snippet.name = it
-            }
-        }
-
-        // Update description if provided
-        updateSnippetFileDTO.description?.let {
-            snippet.description = it
-        }
-
-        val updatedSnippet = snippetRepository.save(snippet)
-        logger.info("Snippet {} updated successfully", id)
-
-        // Trigger automatic formatting, linting, and testing
-        try {
-            printScriptServiceConnector.triggerAutomaticFormatting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticLinting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticTesting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-        } catch (e: Exception) {
-            // Log but don't fail - automatic formatting/linting/testing is optional
-        }
-
-        return toResponseDTO(updatedSnippet)
     }
 
     fun updateSnippet(id: String, updateSnippetDTO: UpdateSnippetDTO, userId: String): SnippetResponseDTO {
@@ -584,6 +521,62 @@ class SnippetService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getSnippet(id: String, userId: String): SnippetResponseDTO {
+        logger.debug("Fetching snippet: {} for user: {}", id, userId)
+
+        // Verificar permisos con Permission Service
+        if (!permissionServiceConnector.hasPermission(id, userId)) {
+            logger.warn("User {} attempted to access snippet {} without permission", userId, id)
+            throw NoSuchElementException("Snippet con ID $id no encontrado o sin permisos")
+        }
+
+        val snippet = snippetRepository.findById(id).orElse(null)
+            ?: throw NoSuchElementException("Snippet con ID $id no encontrado")
+
+        logger.debug("Snippet {} retrieved successfully", id)
+        return toResponseDTO(snippet)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAllSnippets(userId: String, nameFilter: String? = null): List<SnippetResponseDTO> {
+        logger.debug("Fetching all snippets for user: {}{}", userId, if (nameFilter != null) " with filter: $nameFilter" else "")
+
+        // Obtener todos los snippets a los que el usuario tiene acceso desde Permission Service
+        val permittedSnippetIds = try {
+            permissionServiceConnector.getUserPermittedSnippets(userId)
+        } catch (e: Exception) {
+            logger.error("Error fetching permitted snippets for user {}: {}", userId, e.message, e)
+            // Fallback: solo mostrar snippets propios
+            emptyList<String>()
+        }
+
+        logger.debug("User {} has access to {} snippets via permissions", userId, permittedSnippetIds.size)
+
+        // Buscar snippets: propios + compartidos
+        val snippets = if (permittedSnippetIds.isEmpty()) {
+            // Si no hay permisos desde el servicio, solo mostrar snippets propios
+            if (nameFilter.isNullOrBlank()) {
+                snippetRepository.findByUserId(userId)
+            } else {
+                snippetRepository.findByUserIdAndNameContainingIgnoreCase(userId, nameFilter)
+            }
+        } else {
+            // Obtener snippets por IDs permitidos
+            val allPermittedSnippets = snippetRepository.findAllById(permittedSnippetIds)
+
+            // Aplicar filtro de nombre si existe
+            if (nameFilter.isNullOrBlank()) {
+                allPermittedSnippets
+            } else {
+                allPermittedSnippets.filter { it.name.contains(nameFilter, ignoreCase = true) }
+            }
+        }
+
+        logger.debug("Returning {} snippets for user: {}", snippets.size, userId)
+        return snippets.map { toResponseDTO(it) }
+    }
+
     private fun toResponseDTO(snippet: Snippet): SnippetResponseDTO {
         // Retrieve content from asset service
         val content = assetServiceConnector.getSnippet(snippet.id)
@@ -603,60 +596,5 @@ class SnippetService(
             createdAt = snippet.createdAt,
             updatedAt = snippet.updatedAt,
         )
-    }
-
-    /**
-     * Initialize default formatting and linting rules for a user if they don't have any yet.
-     * This is called when a user creates their first snippet to avoid errors when fetching rules later.
-     */
-    private fun initializeDefaultRulesIfNeeded(userId: String) {
-        try {
-            val correlationId = java.util.UUID.randomUUID().toString()
-
-            // Check if user already has formatting rules
-            val existingFormattingRules = try {
-                printScriptServiceConnector.getFormattingRules(userId, correlationId)
-            } catch (e: Exception) {
-                logger.debug("Error checking existing formatting rules for user {}: {}", userId, e.message)
-                emptyList()
-            }
-
-            // Initialize formatting rules if none exist
-            if (existingFormattingRules.isEmpty()) {
-                logger.info("Initializing default formatting rules for user: {}", userId)
-                val defaultFormattingRules = DefaultRulesConfig.getDefaultFormattingRules()
-                try {
-                    printScriptServiceConnector.saveFormattingRules(userId, correlationId, defaultFormattingRules)
-                    logger.info("Default formatting rules initialized successfully for user: {}", userId)
-                } catch (e: Exception) {
-                    logger.warn("Failed to initialize default formatting rules for user {}: {}", userId, e.message)
-                    // Don't fail snippet creation if rule initialization fails
-                }
-            }
-
-            // Check if user already has linting rules
-            val existingLintingRules = try {
-                printScriptServiceConnector.getLintingRules(userId, correlationId)
-            } catch (e: Exception) {
-                logger.debug("Error checking existing linting rules for user {}: {}", userId, e.message)
-                emptyList()
-            }
-
-            // Initialize linting rules if none exist
-            if (existingLintingRules.isEmpty()) {
-                logger.info("Initializing default linting rules for user: {}", userId)
-                val defaultLintingRules = DefaultRulesConfig.getDefaultLintingRules()
-                try {
-                    printScriptServiceConnector.saveLintingRules(userId, correlationId, defaultLintingRules)
-                    logger.info("Default linting rules initialized successfully for user: {}", userId)
-                } catch (e: Exception) {
-                    logger.warn("Failed to initialize default linting rules for user {}: {}", userId, e.message)
-                    // Don't fail snippet creation if rule initialization fails
-                }
-            }
-        } catch (e: Exception) {
-            // Log but don't fail - rule initialization is optional
-            logger.warn("Error during rule initialization for user {}: {}", userId, e.message)
-        }
     }
 }
