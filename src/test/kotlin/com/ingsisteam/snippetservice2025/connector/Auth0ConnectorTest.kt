@@ -2,7 +2,6 @@ package com.ingsisteam.snippetservice2025.connector
 
 import com.ingsisteam.snippetservice2025.model.dto.external.Auth0UserDTO
 import io.mockk.every
-import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
@@ -33,11 +32,18 @@ class Auth0ConnectorTest {
     @MockK(relaxed = true)
     private lateinit var responseSpec: WebClient.ResponseSpec
 
-    @InjectMockKs
-    private lateinit var auth0Connector: Auth0Connector
-
     private val auth0Domain = "test-auth0.com"
     private val managementToken = "test-token"
+    private val clientId = "test-client-id"
+    private val clientSecret = "test-client-secret"
+
+    private fun createAuth0Connector(
+        domain: String = auth0Domain,
+        clientId: String = this.clientId,
+        clientSecret: String = this.clientSecret,
+    ): Auth0Connector {
+        return Auth0Connector(webClientBuilder, domain, clientId, clientSecret)
+    }
 
     // Helper function to mock the WebClient chain
     private fun mockWebClientChain(expectedUsers: List<Auth0UserDTO> = emptyList(), shouldThrow: Boolean = false, auth0Domain: String = this.auth0Domain) {
@@ -68,6 +74,7 @@ class Auth0ConnectorTest {
         // Given
         val users = listOf(Auth0UserDTO("1", "test@test.com", "Test User", "test", "pic"))
         mockWebClientChain(expectedUsers = users)
+        val auth0Connector = createAuth0Connector()
 
         // When
         val result = auth0Connector.getUsers()
@@ -83,6 +90,7 @@ class Auth0ConnectorTest {
         // Given
         val users = listOf(Auth0UserDTO("1", "test@test.com", "Test User", "test", "pic"))
         mockWebClientChain(expectedUsers = users)
+        val auth0Connector = createAuth0Connector()
 
         // When
         val result = auth0Connector.getUsers("Test")
@@ -98,7 +106,7 @@ class Auth0ConnectorTest {
         // Given
         mockWebClientChain(shouldThrow = true)
         // Ensure auth0Connector is initialized with a non-blank token so it attempts the external call
-        val failingAuth0Connector = Auth0Connector(webClientBuilder, auth0Domain, managementToken)
+        val failingAuth0Connector = createAuth0Connector()
 
         // When
         val result = failingAuth0Connector.getUsers()
@@ -111,7 +119,7 @@ class Auth0ConnectorTest {
     @Test
     fun `test getUsers returns mock users when token is blank`() {
         // Given
-        val blankTokenAuth0Connector = Auth0Connector(webClientBuilder, auth0Domain, "") // Blank token
+        val blankTokenAuth0Connector = createAuth0Connector(clientId = "", clientSecret = "") // Blank clientId and clientSecret
 
         // When
         val result = blankTokenAuth0Connector.getUsers()
