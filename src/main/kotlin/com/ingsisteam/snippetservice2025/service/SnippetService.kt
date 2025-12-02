@@ -85,7 +85,7 @@ class SnippetService(
             if (permissionResult == null) {
                 // Rollback: delete the snippet if permission creation failed
                 logger.error("Permission creation failed for snippet {}, rolling back snippet creation", savedSnippet.id)
-                snippetRepository.deleteById(savedSnippet.id)
+                assetServiceConnector.deleteSnippet(savedSnippet.id)
                 throw RuntimeException("No se pudo crear el permiso para el snippet. El snippet no fue creado.")
             }
 
@@ -94,30 +94,7 @@ class SnippetService(
             // Rollback: delete the snippet and asset if permission creation failed
             logger.error("Permission creation failed for snippet {}: {}, rolling back snippet creation", savedSnippet.id, e.message)
             assetServiceConnector.deleteSnippet(savedSnippet.id)
-            snippetRepository.deleteById(savedSnippet.id)
             throw RuntimeException("No se pudo crear el permiso para el snippet: ${e.message}", e)
-        }
-
-        // Trigger automatic formatting, linting, and testing
-        try {
-            printScriptServiceConnector.triggerAutomaticFormatting(
-                snippetId = savedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticLinting(
-                snippetId = savedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticTesting(
-                snippetId = savedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-        } catch (e: Exception) {
-            // Log but don't fail - automatic formatting/linting/testing is optional
-            logger.debug("Optional operations failed, but snippet creation succeeded: {}", e.message)
         }
 
         return toResponseDTO(savedSnippet)
@@ -180,27 +157,6 @@ class SnippetService(
 
         val updatedSnippet = snippetRepository.save(snippet)
         logger.info("Snippet {} updated successfully", id)
-
-        // Trigger automatic formatting, linting, and testing
-        try {
-            printScriptServiceConnector.triggerAutomaticFormatting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticLinting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-            printScriptServiceConnector.triggerAutomaticTesting(
-                snippetId = updatedSnippet.id.toString(),
-                userId = userId,
-                content = content,
-            )
-        } catch (e: Exception) {
-            // Log but don't fail - automatic formatting/linting/testing is optional
-        }
 
         return toResponseDTO(updatedSnippet)
     }
@@ -469,7 +425,7 @@ class SnippetService(
         var inputIndex = 0
 
         // Retrieve content from asset service
-        val content = assetServiceConnector.getSnippet(id)
+        val content = assetServiceConnector.getSnippet(snippet.id)
             ?: throw RuntimeException("No se pudo recuperar el contenido del snippet desde el servicio de assets")
 
         try {
@@ -482,13 +438,13 @@ class SnippetService(
 
                 // Handle println()
                 if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
-                    val content = trimmed.substring(8, trimmed.length - 2).trim()
-                    val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
-                        (content.startsWith("'") && content.endsWith("'"))
+                    val snippetContent = trimmed.substring(8, trimmed.length - 2).trim()
+                    val output = if ((snippetContent.startsWith("\"") && snippetContent.endsWith("\"")) ||
+                        (snippetContent.startsWith("'") && snippetContent.endsWith("'"))
                     ) {
-                        content.substring(1, content.length - 1)
+                        snippetContent.substring(1, snippetContent.length - 1)
                     } else {
-                        content
+                        snippetContent
                     }
                     outputs.add(output)
                     logger.debug("Output: {}", output)
