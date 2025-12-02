@@ -94,6 +94,7 @@ class SnippetTestController(
         logger.info("Fetching test {} for snippet {} by user: {}", testId, snippetId, userId)
         val test = snippetTestService.getTest(snippetId, testId, userId)
         logger.debug("Test {} retrieved successfully", testId)
+        logger.debug("Response body: {}", test)
         return ResponseEntity.ok(test)
     }
 
@@ -143,12 +144,12 @@ class SnippetTestController(
         logger.info("Deleting test {} from snippet {} by user: {}", testId, snippetId, userId)
         snippetTestService.deleteTest(snippetId, testId, userId)
         logger.info("Test {} deleted successfully", testId)
-        return ResponseEntity.ok(
-            SuccessResponse(
-                success = true,
-                message = "Test con ID $testId eliminado exitosamente del snippet $snippetId",
-            ),
+        val response = SuccessResponse(
+            success = true,
+            message = "Test con ID $testId eliminado exitosamente del snippet $snippetId",
         )
+        logger.debug("Response body: {}", response)
+        return ResponseEntity.ok(response)
     }
 
     @PostMapping("/{testId}/execute")
@@ -197,6 +198,7 @@ class SnippetTestController(
         logger.info("Running all tests for snippet {} by user: {}", snippetId, userId)
         val result = snippetTestService.runAllTests(snippetId, userId)
         logger.info("All tests executed: {}/{} passed", result.passedTests, result.totalTests)
+        logger.debug("Response body: {}", result)
         return ResponseEntity.ok(result)
     }
 }

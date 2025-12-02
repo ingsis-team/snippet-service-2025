@@ -99,8 +99,10 @@ class SnippetController(
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
         logger.info("Creating snippet from editor: '{}' for user: {}", createSnippetDTO.name, userId)
+        logger.debug("Request body received: {}", createSnippetDTO)
         val snippet = snippetService.createSnippet(createSnippetDTO, userId)
         logger.info("Snippet created successfully with ID: {}", snippet.id)
+        logger.debug("Response body: {}", snippet)
         return ResponseEntity.status(HttpStatus.CREATED).body(snippet)
     }
 
@@ -133,7 +135,7 @@ class SnippetController(
         ],
     )
     fun getAllSnippets(
-        @Parameter(description = "Filtrar por nombre de snippet (búsqueda parcial, case-insensitive)")
+        @Parameter(description = "Filtrar por nombre de snippet (bsqueda parcial, case-insensitive)")
         @RequestParam(required = false) name: String?,
         @AuthenticationPrincipal jwt: Jwt?,
     ): ResponseEntity<List<SnippetResponseDTO>> {
@@ -141,6 +143,7 @@ class SnippetController(
         logger.info("Fetching all snippets for user: {}{}", userId, if (name != null) " with filter: $name" else "")
         val snippets = snippetService.getAllSnippets(userId, name)
         logger.info("Returning {} snippets", snippets.size)
+        logger.debug("Response body: {} snippets", snippets.size)
         return ResponseEntity.ok(snippets)
     }
 
@@ -191,8 +194,10 @@ class SnippetController(
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = getUserId(jwt)
         logger.info("Updating snippet {} from editor for user: {}", id, userId)
+        logger.debug("Request body received: {}", updateSnippetDTO)
         val snippet = snippetService.updateSnippet(id, updateSnippetDTO, userId)
         logger.info("Snippet {} updated successfully", id)
+        logger.debug("Response body: {}", snippet)
         return ResponseEntity.ok(snippet)
     }
 
@@ -246,8 +251,10 @@ class SnippetController(
             shareSnippetDTO.targetUserId,
             userId,
         )
+        logger.debug("Request body received: {}", shareSnippetDTO)
         val response = shareService.shareSnippet(shareSnippetDTO, userId)
         logger.info("Snippet {} shared successfully", shareSnippetDTO.snippetId)
+        logger.debug("Response body: {}", response)
         return ResponseEntity.ok(response)
     }
 
@@ -297,8 +304,10 @@ class SnippetController(
     ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.ExecuteSnippetResponseDTO> {
         val userId = getUserId(jwt)
         logger.info("Executing snippet {} for user: {} with inputs: {}", id, userId, executeSnippetDTO.inputs)
+        logger.debug("Request body received: {}", executeSnippetDTO)
         val result = snippetService.executeSnippet(id, executeSnippetDTO, userId)
         logger.info("Snippet {} executed successfully with outputs: {}", id, result.outputs)
+        logger.debug("Response body: {}", result)
         return ResponseEntity.ok(result)
     }
 }

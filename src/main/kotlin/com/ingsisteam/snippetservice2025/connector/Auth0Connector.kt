@@ -66,6 +66,8 @@ class Auth0Connector(
                 "grant_type" to "client_credentials",
             )
 
+            logger.debug("Request body to Auth0 (token): client_id={}, audience={}", clientId, "https://$auth0Domain/api/v2/")
+
             val response = client.post()
                 .uri("/oauth/token")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -78,6 +80,7 @@ class Auth0Connector(
                 managementToken = response.accessToken
                 tokenExpiresAt = Instant.now().plusSeconds(response.expiresIn.toLong())
                 logger.debug("Auth0 Management token obtained successfully, expires in {} seconds", response.expiresIn)
+                logger.debug("Response body from Auth0 (token): tokenType={}, expiresIn={}", response.tokenType, response.expiresIn)
                 response.accessToken
             } else {
                 logger.error("Failed to obtain Auth0 Management token: null response")
@@ -151,6 +154,7 @@ class Auth0Connector(
                 .block() ?: emptyList()
 
             logger.debug("Fetched {} users from Auth0", users.size)
+            logger.debug("Response body from Auth0: {} users returned", users.size)
             users
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
             logger.error("Auth0 API error: Status={}, Response={}", e.statusCode, e.responseBodyAsString)

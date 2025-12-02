@@ -41,6 +41,7 @@ class PrintScriptServiceConnector(
         if (content.isBlank()) {
             logger.warn("Content is blank or empty!")
         }
+        logger.debug("Request body to PrintScript service: content with {} characters", content.length)
 
         return try {
             // PrintScript service expects just the content string as @RequestBody String
@@ -69,10 +70,12 @@ class PrintScriptServiceConnector(
                 )
             } else if (result.isValid) {
                 logger.debug("Syntax validation passed")
+                logger.debug("Response body from PrintScript service: isValid=true")
                 ValidationResponse(isValid = true, errors = null)
             } else {
                 // Propagate validation error from PrintScript service
                 logger.warn("Syntax validation failed: {} at line {}, column {}", result.rule, result.line, result.column)
+                logger.debug("Response body from PrintScript service: {}", result)
                 ValidationResponse(
                     isValid = false,
                     errors = listOf(
@@ -163,7 +166,7 @@ class PrintScriptServiceConnector(
                 userId = userId,
             )
 
-            logger.debug("Sending format request to PrintScript: {}", snippetDto)
+            logger.debug("Request body to PrintScript service: {}", snippetDto)
 
             val result = client.post()
                 .uri("/format")
@@ -173,7 +176,7 @@ class PrintScriptServiceConnector(
                 .bodyToMono(SnippetOutputDTO::class.java)
                 .block()
 
-            logger.debug("Received format response from PrintScript: {}", result)
+            logger.debug("Response body from PrintScript service: {}", result)
 
             result ?: throw PrintScriptServiceException(
                 message = "El servicio no devolvió una respuesta",
@@ -222,6 +225,8 @@ class PrintScriptServiceConnector(
                 userId = userId,
             )
 
+            logger.debug("Request body to PrintScript service: {}", snippetDto)
+
             val result = client.post()
                 .uri("/lint")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -229,6 +234,8 @@ class PrintScriptServiceConnector(
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<SCAOutput>>() {})
                 .block()
+
+            logger.debug("Response body from PrintScript service: {} issues", result?.size ?: 0)
 
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
@@ -272,6 +279,7 @@ class PrintScriptServiceConnector(
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
+            logger.debug("Response body from PrintScript service: {} rules", result?.size ?: 0)
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
             logger.error("Error getting formatting rules: {} - {}", e.statusCode, e.responseBodyAsString)
@@ -314,6 +322,8 @@ class PrintScriptServiceConnector(
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
+            logger.debug("Response body from PrintScript service: {} rules", result?.size ?: 0)
+
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
             logger.error("Error getting linting rules: {} - {}", e.statusCode, e.responseBodyAsString)
@@ -348,6 +358,8 @@ class PrintScriptServiceConnector(
         return try {
             val path = "/rules/format/$userId"
             logger.debug("Calling PrintScript POST {} with rulesCount={}", path, rules.size)
+            logger.debug("Request body to PrintScript service: {} rules", rules.size)
+
             val result = client.post()
                 .uri(path)
                 .header("Correlation-id", correlationId)
@@ -358,6 +370,7 @@ class PrintScriptServiceConnector(
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
+            logger.debug("Response body from PrintScript service: {} rules", result?.size ?: 0)
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
             logger.error("Error saving formatting rules: {} - {}", e.statusCode, e.responseBodyAsString)
@@ -392,6 +405,8 @@ class PrintScriptServiceConnector(
         return try {
             val path = "/rules/lint/$userId"
             logger.debug("Calling PrintScript POST {} with rulesCount={}", path, rules.size)
+            logger.debug("Request body to PrintScript service: {} rules", rules.size)
+
             val result = client.post()
                 .uri(path)
                 .header("Correlation-id", correlationId)
@@ -401,6 +416,8 @@ class PrintScriptServiceConnector(
                 .retrieve()
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
+
+            logger.debug("Response body from PrintScript service: {} rules", result?.size ?: 0)
 
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
@@ -436,6 +453,8 @@ class PrintScriptServiceConnector(
         return try {
             val path = "/rules/format/$userId"
             logger.debug("Calling PrintScript POST {} with FormatterRulesFileDTO", path)
+            logger.debug("Request body to PrintScript service: FormatterRulesFileDTO")
+
             val result = client.post()
                 .uri(path)
                 .header("Correlation-id", correlationId)
@@ -446,6 +465,7 @@ class PrintScriptServiceConnector(
                 .bodyToMono(object : ParameterizedTypeReference<List<Rule>>() {})
                 .block()
 
+            logger.debug("Response body from PrintScript service: {} rules", result?.size ?: 0)
             result ?: emptyList()
         } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException) {
             logger.error("Error saving formatting rules (file DTO): {} - {}", e.statusCode, e.responseBodyAsString)
@@ -485,6 +505,8 @@ class PrintScriptServiceConnector(
                 "correlationID" to java.util.UUID.randomUUID().toString(),
             )
 
+            logger.debug("Request body to PrintScript service: {}", snippetDto)
+
             // Call the endpoint to trigger automatic formatting
             client.put()
                 .uri("/redis/format/snippet")
@@ -510,6 +532,8 @@ class PrintScriptServiceConnector(
                 "correlationID" to java.util.UUID.randomUUID().toString(),
             )
 
+            logger.debug("Request body to PrintScript service: {}", snippetDto)
+
             // Call the endpoint to trigger automatic linting
             client.put()
                 .uri("/redis/lint/snippet")
@@ -534,6 +558,8 @@ class PrintScriptServiceConnector(
                 "content" to content,
                 "correlationID" to java.util.UUID.randomUUID().toString(),
             )
+
+            logger.debug("Request body to PrintScript service: {}", snippetDto)
 
             // Call the endpoint to trigger automatic testing
             client.put()
