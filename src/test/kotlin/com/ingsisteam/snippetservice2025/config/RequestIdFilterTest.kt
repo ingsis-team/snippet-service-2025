@@ -95,5 +95,4 @@ class RequestIdFilterTest {
         assertNull(MDC.get(RequestIdFilter.REQUEST_ID_MDC_KEY)) // MDC should be cleaned up
         verify(exactly = 1) { chain.doFilter(request, response) } // chain.doFilter should be called once
     }
-
 }
