@@ -425,7 +425,7 @@ class SnippetService(
         var inputIndex = 0
 
         // Retrieve content from asset service
-        val content = assetServiceConnector.getSnippet(id)
+        val content = assetServiceConnector.getSnippet(snippet.id)
             ?: throw RuntimeException("No se pudo recuperar el contenido del snippet desde el servicio de assets")
 
         try {
@@ -438,13 +438,13 @@ class SnippetService(
 
                 // Handle println()
                 if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
-                    val content = trimmed.substring(8, trimmed.length - 2).trim()
-                    val output = if ((content.startsWith("\"") && content.endsWith("\"")) ||
-                        (content.startsWith("'") && content.endsWith("'"))
+                    val snippetContent = trimmed.substring(8, trimmed.length - 2).trim()
+                    val output = if ((snippetContent.startsWith("\"") && snippetContent.endsWith("\"")) ||
+                        (snippetContent.startsWith("'") && snippetContent.endsWith("'"))
                     ) {
-                        content.substring(1, content.length - 1)
+                        snippetContent.substring(1, snippetContent.length - 1)
                     } else {
-                        content
+                        snippetContent
                     }
                     outputs.add(output)
                     logger.debug("Output: {}", output)
