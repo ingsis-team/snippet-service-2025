@@ -266,7 +266,7 @@ class CodeAnalysisServiceTest {
             printScriptConnector.saveFormattingRulesFile(
                 userId,
                 any(),
-                dto
+                dto,
             )
         } throws RuntimeException("Connector error")
 
@@ -307,7 +307,7 @@ class CodeAnalysisServiceTest {
                     any(),
                     any(),
                     any(),
-                    any()
+                    any(),
                 )
             } throws RuntimeException("PrintScript error")
 
@@ -330,7 +330,7 @@ class CodeAnalysisServiceTest {
             val snippetOutput = com.ingsisteam.snippetservice2025.model.dto.external.SnippetOutputDTO(
                 snippet = formattedContent,
                 correlationId = "corr-id",
-                snippetId = snippetId.toString()
+                snippetId = snippetId.toString(),
             )
 
             every { snippetRepository.findById(any()) } returns Optional.of(snippet)

@@ -12,7 +12,7 @@ class Auth0UserDTOTest {
             email = "test@example.com",
             name = "Test User",
             nickname = "tester",
-            picture = "http://example.com/pic.jpg"
+            picture = "http://example.com/pic.jpg",
         )
 
         assertEquals("auth0|12345", dto.userId)
@@ -25,7 +25,7 @@ class Auth0UserDTOTest {
     @Test
     fun `test Auth0UserDTO with only required property`() {
         val dto = Auth0UserDTO(
-            userId = "auth0|67890"
+            userId = "auth0|67890",
         )
 
         assertEquals("auth0|67890", dto.userId)
@@ -40,7 +40,7 @@ class Auth0UserDTOTest {
         val dto = Auth0UserDTO(
             userId = "auth0|abcde",
             email = "another@example.com",
-            name = "Another User"
+            name = "Another User",
         )
 
         assertEquals("auth0|abcde", dto.userId)

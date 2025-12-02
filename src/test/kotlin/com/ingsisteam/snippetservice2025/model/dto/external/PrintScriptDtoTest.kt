@@ -13,7 +13,7 @@ class PrintScriptDtoTest {
             language = "PRINTSCRIPT",
             version = "1.0",
             input = "println(\"hello\")",
-            userId = "u1"
+            userId = "u1",
         )
         assertEquals("s1", dto.snippetId)
         assertEquals("c1", dto.correlationId)
@@ -28,7 +28,7 @@ class PrintScriptDtoTest {
         val dto = SnippetOutputDTO(
             snippet = "output",
             correlationId = "c2",
-            snippetId = "s2"
+            snippetId = "s2",
         )
         assertEquals("output", dto.snippet)
         assertEquals("c2", dto.correlationId)
@@ -62,7 +62,7 @@ class PrintScriptDtoTest {
             input = listOf("input1"),
             output = listOf("output1"),
             snippet = "testSnippet",
-            envVars = mapOf("ENV_VAR_1" to "value1")
+            envVars = mapOf("ENV_VAR_1" to "value1"),
         )
         assertEquals(listOf("input1"), dto.input)
         assertEquals(listOf("output1"), dto.output)
@@ -76,7 +76,7 @@ class PrintScriptDtoTest {
             rule = "NoPrint",
             line = 1,
             column = 5,
-            message = "Print statement found"
+            message = "Print statement found",
         )
         assertEquals("NoPrint", dto.rule)
         assertEquals(1, dto.line)

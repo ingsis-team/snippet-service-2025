@@ -10,7 +10,7 @@ class ValidationDtoTest {
         val dto = ValidationRequest(
             content = "print(1)",
             language = "PRINTSCRIPT",
-            version = "1.0"
+            version = "1.0",
         )
         assertEquals("print(1)", dto.content)
         assertEquals("PRINTSCRIPT", dto.language)
@@ -21,7 +21,7 @@ class ValidationDtoTest {
     fun `test ValidationResponse with no errors`() {
         val dto = ValidationResponse(
             isValid = true,
-            errors = null
+            errors = null,
         )
         assertEquals(true, dto.isValid)
         assertEquals(null, dto.errors)
@@ -33,11 +33,11 @@ class ValidationDtoTest {
             rule = "NoPrint",
             line = 1,
             column = 1,
-            message = "Print statements are not allowed"
+            message = "Print statements are not allowed",
         )
         val dto = ValidationResponse(
             isValid = false,
-            errors = listOf(error)
+            errors = listOf(error),
         )
         assertEquals(false, dto.isValid)
         assertEquals(listOf(error), dto.errors)
@@ -49,7 +49,7 @@ class ValidationDtoTest {
             rule = "NoVariables",
             line = 5,
             column = 10,
-            message = "Variables are not allowed"
+            message = "Variables are not allowed",
         )
         assertEquals("NoVariables", dto.rule)
         assertEquals(5, dto.line)
@@ -63,7 +63,7 @@ class ValidationDtoTest {
             isValid = true,
             rule = "NoSemicolons",
             line = 2,
-            column = 3
+            column = 3,
         )
         assertEquals(true, dto.isValid)
         assertEquals("NoSemicolons", dto.rule)

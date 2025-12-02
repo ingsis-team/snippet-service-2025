@@ -10,7 +10,7 @@ class PermissionDtoTest {
         val dto = PermissionRequest(
             snippet_id = "snippet123",
             user_id = "user456",
-            role = "EDITOR"
+            role = "EDITOR",
         )
 
         assertEquals("snippet123", dto.snippet_id)
@@ -22,7 +22,7 @@ class PermissionDtoTest {
     fun `test PermissionRequest with default role`() {
         val dto = PermissionRequest(
             snippet_id = "snippet789",
-            user_id = "user012"
+            user_id = "user012",
         )
 
         assertEquals("snippet789", dto.snippet_id)
@@ -37,7 +37,7 @@ class PermissionDtoTest {
             snippet_id = "snippet123",
             user_id = "user456",
             role = "VIEWER",
-            created_at = "2025-12-02T10:00:00Z"
+            created_at = "2025-12-02T10:00:00Z",
         )
 
         assertEquals("permId123", dto.id)
@@ -53,7 +53,7 @@ class PermissionDtoTest {
             id = "permId456",
             snippet_id = "snippet789",
             user_id = "user012",
-            role = "OWNER"
+            role = "OWNER",
         )
 
         assertEquals("permId456", dto.id)
@@ -67,7 +67,7 @@ class PermissionDtoTest {
     fun `test PermissionCheckResponseDTO properties`() {
         val dto = PermissionCheckResponseDTO(
             has_permission = true,
-            role = "OWNER"
+            role = "OWNER",
         )
 
         assertEquals(true, dto.has_permission)
@@ -77,7 +77,7 @@ class PermissionDtoTest {
     @Test
     fun `test PermissionCheckResponseDTO with null role`() {
         val dto = PermissionCheckResponseDTO(
-            has_permission = false
+            has_permission = false,
         )
 
         assertEquals(false, dto.has_permission)
