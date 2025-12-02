@@ -54,11 +54,14 @@ class CodeAnalysisController(
     ): ResponseEntity<FormatSnippetResponseDTO> {
         val userId = getUserId(jwt)
         logger.info("Formatting snippet request: snippetId={}, userId={}", request.snippetId, userId)
+        logger.debug("Request body received: {}", request)
 
         val snippetId = UUID.fromString(request.snippetId)
         val formattedContent = codeAnalysisService.formatSnippet(snippetId, userId)
 
-        return ResponseEntity.ok(FormatSnippetResponseDTO(formattedContent))
+        val response = FormatSnippetResponseDTO(formattedContent)
+        logger.debug("Response body: {}", response)
+        return ResponseEntity.ok(response)
     }
 
     @PostMapping("/lint")
@@ -98,6 +101,7 @@ class CodeAnalysisController(
         logger.info("Getting formatting rules for user: {}", userId)
 
         val rules = codeAnalysisService.getFormattingRules(userId)
+        logger.debug("Response body: {} rules", rules.size)
         return ResponseEntity.ok(rules)
     }
 
@@ -133,8 +137,10 @@ class CodeAnalysisController(
     ): ResponseEntity<List<Rule>> {
         val userId = getUserId(jwt)
         logger.info("Saving formatting rules for user: {}, rulesCount={}", userId, rules.size)
+        logger.debug("Request body received: {} rules", rules.size)
 
         val savedRules = codeAnalysisService.saveFormattingRules(userId, rules)
+        logger.debug("Response body: {} rules", savedRules.size)
         return ResponseEntity.ok(savedRules)
     }
 
@@ -157,6 +163,51 @@ class CodeAnalysisController(
         return ResponseEntity.ok(savedRules)
     }
 
+    @PostMapping("/format/all")
+    @Operation(
+        summary = "Formatear todos los snippets del usuario",
+        description = "Formatea todos los snippets donde el usuario es OWNER según las reglas de formateo configuradas",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Formateo masivo completado"),
+            ApiResponse(responseCode = "401", description = "No autenticado"),
+        ],
+    )
+    fun formatAllSnippets(
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.FormatAllSnippetsResponseDTO> {
+        val userId = getUserId(jwt)
+        logger.info("Formatting all snippets for user: {}", userId)
+
+        val result = codeAnalysisService.formatAllUserSnippets(userId)
+        logger.info("Formatting completed: {}/{} successful", result.successfullyFormatted, result.totalSnippets)
+        logger.debug("Response body: {}", result)
+        return ResponseEntity.ok(result)
+    }
+
+    @PostMapping("/lint/all")
+    @Operation(
+        summary = "Analizar todos los snippets del usuario",
+        description = "Ejecuta el linter en todos los snippets donde el usuario es OWNER según las reglas de linting configuradas",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Linting masivo completado"),
+            ApiResponse(responseCode = "401", description = "No autenticado"),
+        ],
+    )
+    fun lintAllSnippets(
+        @AuthenticationPrincipal jwt: Jwt?,
+    ): ResponseEntity<com.ingsisteam.snippetservice2025.model.dto.LintAllSnippetsResponseDTO> {
+        val userId = getUserId(jwt)
+        logger.info("Linting all snippets for user: {}", userId)
+
+        val result = codeAnalysisService.lintAllUserSnippets(userId)
+        logger.info("Linting completed: {} with issues, {} without issues", result.snippetsWithIssues, result.snippetsWithoutIssues)
+        return ResponseEntity.ok(result)
+    }
+
     @PostMapping("/format/save-rules")
     @Operation(summary = "Guardar reglas de formateo (file DTO)", description = "Guarda las reglas de formateo para el usuario autenticado usando FormatterRulesFileDTO")
     @ApiResponses(
@@ -171,8 +222,10 @@ class CodeAnalysisController(
     ): ResponseEntity<List<Rule>> {
         val userId = getUserId(jwt)
         logger.info("Saving formatting rules (file DTO) for user: {}, rulesPayloadPresent=true", userId)
+        logger.debug("Request body received: {}", request)
 
         val savedRules = codeAnalysisService.saveFormattingRules(userId, request)
+        logger.debug("Response body: {} rules", savedRules.size)
         return ResponseEntity.ok(savedRules)
     }
 }

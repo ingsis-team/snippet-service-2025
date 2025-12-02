@@ -145,6 +145,7 @@ class AssetServiceConnector(
             }
 
             logger.info("Received response status: {}", responseStatus)
+            logger.debug("Response from asset service: status={}", responseStatus)
 
             when (responseStatus) {
                 HttpStatus.CREATED, HttpStatus.OK -> {
@@ -257,6 +258,7 @@ class AssetServiceConnector(
                 .block()
 
             logger.info("Received response status: {}", responseStatus)
+            logger.debug("Response from asset service: status={}", responseStatus)
 
             when (responseStatus) {
                 HttpStatus.NO_CONTENT, HttpStatus.NOT_FOUND -> {
