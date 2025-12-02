@@ -278,9 +278,6 @@ class SnippetServiceTest {
                 role = any(),
             )
         } returns permissionResponse
-        every { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) } returns Unit
-        every { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) } returns Unit
-        every { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) } returns Unit
 
         // When
         val result = snippetService.createSnippetFromFile(createSnippetFileDTO, userId)
@@ -290,7 +287,9 @@ class SnippetServiceTest {
         verify(exactly = 1) { snippetRepository.save(any()) }
         verify(exactly = 1) { assetServiceConnector.storeSnippet("2", fileContent) }
         verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
-        verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
+        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
     }
 
     @Test
@@ -416,7 +415,6 @@ class SnippetServiceTest {
             )
         } throws RuntimeException("Permission service error") // Simulate failure
         every { assetServiceConnector.deleteSnippet("2") } returns true
-        every { snippetRepository.deleteById("2") } returns Unit
 
         // When & Then
         assertThrows<RuntimeException> {
@@ -426,8 +424,7 @@ class SnippetServiceTest {
         // Then
         verify(exactly = 1) { snippetRepository.save(any()) }
         verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
-        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
-        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
+        verify(exactly = 0) { snippetRepository.deleteById(any()) }
     }
 
     @Test
