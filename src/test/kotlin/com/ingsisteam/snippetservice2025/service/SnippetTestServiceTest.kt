@@ -201,7 +201,7 @@ class SnippetTestServiceTest {
         // Given
         val snippetId = "1"
         val userId = "user123"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
             name = "testSnippet",
             description = "description",
@@ -253,15 +253,9 @@ class SnippetTestServiceTest {
         val snippetId = "1"
         val userId = "user123"
         val testId = "1"
-        val snippet = Snippet(
+        val snippet = buildSnippet(
             id = snippetId,
-            name = "testSnippet",
-            description = "description",
-            language = SnippetLanguage.PRINTSCRIPT,
             userId = userId,
-            version = "1.0",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
         )
         val test = SnippetTest(
             id = testId,

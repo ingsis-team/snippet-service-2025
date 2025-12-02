@@ -151,16 +151,150 @@ class Auth0ConnectorTest {
     }
 
     @Test
-    fun `test getUsers returns mock users when token is blank`() {
+    fun `getUsers should use cached token on second call`() {
         // Given
-        val blankTokenAuth0Connector = createAuth0Connector(clientId = "", clientSecret = "") // Blank clientId and clientSecret
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        val users = listOf(Auth0UserDTO("1", "test@test.com", "Test User", "test", "pic"))
+        mockTokenRetrieval()
+        mockGetUsersChain(expectedUsers = users)
+        val auth0Connector = createAuth0Connector()
 
         // When
-        val result = blankTokenAuth0Connector.getUsers()
+        auth0Connector.getUsers() // First call
+        auth0Connector.getUsers() // Second call
+
+        // Then
+        verify(exactly = 1) { webClient.post() } // Token endpoint should only be called once
+        verify(exactly = 2) { webClient.get() } // Users endpoint should be called twice
+    }
+
+    @Test
+    fun `getUsers should return mock users when token response is null`() {
+        // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval(token = "") // Empty token to simulate null response
+        val auth0Connector = createAuth0Connector()
+
+        // When
+        val result = auth0Connector.getUsers()
+
+        // Then
+        assertEquals(5, result.size)
+        verify(exactly = 1) { webClient.post() }
+    }
+
+    @Test
+    fun `getUsers should handle 'Bad HTTP authentication header format' error`() {
+        // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval()
+        val errorBody = "{\"message\":\"Bad HTTP authentication header format\"}"
+        val errorResponse = org.springframework.web.reactive.function.client.WebClientResponseException.create(
+            401,
+            "Unauthorized",
+            HttpHeaders(),
+            errorBody.toByteArray(),
+            null,
+        )
+        mockGetUsersChain(shouldThrow = true)
+        every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns Flux.error(errorResponse)
+        val auth0Connector = createAuth0Connector()
+
+        // When
+        val result = auth0Connector.getUsers()
 
         // Then
         assertEquals(5, result.size) // Expect mock users
-        verify(exactly = 0) { webClient.get() } // No external call should be made
-        verify(exactly = 0) { webClientBuilder.baseUrl(any<String>()) } // Base URL should not be built
+    }
+
+    @Test
+    fun `getUsers should handle 'Insufficient scope' error`() {
+        // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval()
+        val errorBody = "{\"message\":\"Insufficient scope\"}"
+        val errorResponse = org.springframework.web.reactive.function.client.WebClientResponseException.create(
+            403,
+            "Forbidden",
+            HttpHeaders(),
+            errorBody.toByteArray(),
+            null,
+        )
+        mockGetUsersChain(shouldThrow = true)
+        every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns Flux.error(errorResponse)
+        val auth0Connector = createAuth0Connector()
+
+        // When
+        val result = auth0Connector.getUsers()
+
+        // Then
+        assertEquals(5, result.size) // Expect mock users
+    }
+
+    @Test
+    fun `getUsers should handle 'expired' token error`() {
+        // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval()
+        val errorBody = "{\"message\":\"token is expired\"}"
+        val errorResponse = org.springframework.web.reactive.function.client.WebClientResponseException.create(
+            401,
+            "Unauthorized",
+            HttpHeaders(),
+            errorBody.toByteArray(),
+            null,
+        )
+        mockGetUsersChain(shouldThrow = true)
+        every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns Flux.error(errorResponse)
+        val auth0Connector = createAuth0Connector()
+
+        // When
+        val result = auth0Connector.getUsers()
+
+        // Then
+        assertEquals(5, result.size) // Expect mock users
+    }
+
+    @Test
+    fun `getUsers should handle WebClientResponseException`() {
+        // Given
+        every { webClientBuilder.baseUrl("https://$auth0Domain") } returns webClientBuilder
+        every { webClientBuilder.build() } returns webClient
+        mockTokenRetrieval()
+        mockGetUsersChain(shouldThrow = true)
+        every { responseSpec.bodyToFlux(Auth0UserDTO::class.java) } returns Flux.error(
+            org.springframework.web.reactive.function.client.WebClientResponseException.create(
+                500,
+                "Internal Server Error",
+                HttpHeaders(),
+                ByteArray(0),
+                null,
+            ),
+        )
+        val auth0Connector = createAuth0Connector()
+
+        // When
+        val result = auth0Connector.getUsers()
+
+        // Then
+        assertEquals(5, result.size) // Expect mock users
+    }
+
+    @Test
+    fun `getMockUsers should filter users`() {
+        // Given
+        val auth0Connector = createAuth0Connector(clientId = "", clientSecret = "") // Blank clientId and clientSecret
+
+        // When
+        val result = auth0Connector.getUsers("John")
+
+        // Then
+        assertEquals(1, result.size)
+        assertEquals("John Doe", result[0].name)
     }
 }

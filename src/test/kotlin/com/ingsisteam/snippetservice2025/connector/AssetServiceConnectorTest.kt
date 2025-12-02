@@ -169,6 +169,24 @@ class AssetServiceConnectorTest {
     }
 
     @Test
+    fun `test baseUrl initialization with no protocol`() {
+        // Given
+        val webClientBuilder = WebClient.builder()
+        val assetUrl = "localhost:${server.port}"
+        val connector = AssetServiceConnector(webClientBuilder, assetUrl)
+
+        // When
+        val snippetId = "123"
+        val content = "println(\"hello world\")"
+        server.enqueue(MockResponse().setResponseCode(201))
+        connector.storeSnippet(snippetId, content)
+
+        // Then
+        val request = server.takeRequest()
+        assertEquals("/v1/asset/snippets/$snippetId", request.path)
+    }
+
+    @Test
     fun `test updateSnippet delete fails`() {
         // Given
         val snippetId = "123"
