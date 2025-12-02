@@ -70,6 +70,7 @@ class PermissionServiceConnector(
                 response.has_permission,
                 response.role,
             )
+            logger.debug("Response body from permission service: {}", response)
             response
         } catch (e: Exception) {
             logger.error("Error checking permission for snippetId: {}, error: {}", snippetId, e.message, e)
@@ -110,6 +111,7 @@ class PermissionServiceConnector(
 
             val hasWrite = response ?: false
             logger.debug("User {} has write permission on snippet {}: {}", userId, snippetId, hasWrite)
+            logger.debug("Response body from permission service: {}", response)
             hasWrite
         } catch (e: Exception) {
             // In case of error, deny write access (fail-secure approach)
@@ -160,6 +162,7 @@ class PermissionServiceConnector(
                 .block() ?: emptyList()
 
             logger.debug("Found {} permissions to delete for snippet {}", permissions.size, snippetId)
+            logger.debug("Response body from permission service: {} permissions", permissions.size)
 
             // Eliminar cada permiso
             permissions.forEach { permission ->

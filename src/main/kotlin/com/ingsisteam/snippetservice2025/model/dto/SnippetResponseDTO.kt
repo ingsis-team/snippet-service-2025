@@ -13,4 +13,5 @@ data class SnippetResponseDTO(
     val version: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
+    val compliance: String = "compliant", // Default to compliant since snippets are validated on creation
 )

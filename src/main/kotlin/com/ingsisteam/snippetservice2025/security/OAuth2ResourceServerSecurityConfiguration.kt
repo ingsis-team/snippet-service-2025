@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.JwtValidators
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.web.cors.CorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
@@ -21,6 +22,7 @@ class OAuth2ResourceServerSecurityConfiguration(
     val audience: String,
     @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     val issuer: String,
+    private val corsConfigurationSource: CorsConfigurationSource,
 ) {
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
@@ -31,7 +33,7 @@ class OAuth2ResourceServerSecurityConfiguration(
                 .anyRequest().authenticated()
         }
             .oauth2ResourceServer { it.jwt(withDefaults()) }
-            .cors(withDefaults())
+            .cors { it.configurationSource(corsConfigurationSource) }
             .csrf { it.disable() }
         return http.build()
     }

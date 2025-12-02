@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
@@ -38,8 +39,31 @@ class SnippetTestServiceTest {
     @MockK
     private lateinit var printScriptServiceConnector: PrintScriptServiceConnector
 
+    @MockK
+    private lateinit var assetServiceConnector: AssetServiceConnector
+
     @InjectMockKs
     private lateinit var snippetTestService: SnippetTestService
+
+    private fun buildSnippet(
+        id: String,
+        name: String = "testSnippet",
+        description: String = "description",
+        language: SnippetLanguage = SnippetLanguage.PRINTSCRIPT,
+        userId: String,
+        version: String = "1.0",
+        createdAt: LocalDateTime = LocalDateTime.now(),
+        updatedAt: LocalDateTime = LocalDateTime.now(),
+    ): Snippet = Snippet(
+        id = id,
+        name = name,
+        description = description,
+        language = language,
+        userId = userId,
+        version = version,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
 
     @Test
     fun `test createTest success`() {
@@ -57,7 +81,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -128,7 +151,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -158,7 +180,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -185,7 +206,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -238,7 +258,6 @@ class SnippetTestServiceTest {
             name = "testSnippet",
             description = "description",
             language = SnippetLanguage.PRINTSCRIPT,
-            content = "println(\"hello\")",
             userId = userId,
             version = "1.0",
             createdAt = LocalDateTime.now(),
@@ -267,85 +286,142 @@ class SnippetTestServiceTest {
         verify(exactly = 1) { snippetTestRepository.delete(test) }
     }
 
-    // @Test
-    // fun `test executeTest passed`() {
-    //     // Given
-    //     val snippetId = "1"
-    //     val userId = "user123"
-    //     val testId = "1"
-    //     val snippet = Snippet(
-    //         id = snippetId,
-    //         name = "testSnippet",
-    //         description = "description",
-    //         language = SnippetLanguage.PRINTSCRIPT,
-    //         content = "println(\"hello\");",
-    //         userId = userId,
-    //         version = "1.0",
-    //         createdAt = LocalDateTime.now(),
-    //         updatedAt = LocalDateTime.now(),
-    //     )
-    //     val test = SnippetTest(
-    //         id = testId,
-    //         snippetId = snippetId,
-    //         name = "test1",
-    //         inputs = emptyList(),
-    //         expectedOutputs = listOf("hello"),
-    //         expectedStatus = TestStatus.VALID,
-    //         createdAt = LocalDateTime.now(),
-    //         updatedAt = LocalDateTime.now(),
-    //     )
-    //
-    //     every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
-    //     every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
-    //     every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
-    //
-    //     // When
-    //     val result = snippetTestService.executeTest(snippetId, testId, userId)
-    //
-    //     // Then
-    //     assertEquals(true, result["passed"])
-    //     assertEquals(listOf("hello"), result["expected"])
-    //     assertEquals(listOf("hello"), result["actual"])
-    // }
+    @Test
+    fun `test executeTest passed`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+        val test = SnippetTest(
+            id = testId,
+            snippetId = snippetId,
+            name = "test1",
+            inputs = emptyList(),
+            expectedOutputs = listOf("hello"),
+            expectedStatus = TestStatus.VALID,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
 
-    // @Test
-    // fun `test executeTest failed`() {
-    //     // Given
-    //     val snippetId = "1"
-    //     val userId = "user123"
-    //     val testId = "1"
-    //     val snippet = Snippet(
-    //         id = snippetId,
-    //         name = "testSnippet",
-    //         description = "description",
-    //         language = SnippetLanguage.PRINTSCRIPT,
-    //         content = "println(\"hello\");",
-    //         userId = userId,
-    //         version = "1.0",
-    //         createdAt = LocalDateTime.now(),
-    //         updatedAt = LocalDateTime.now(),
-    //     )
-    //     val test = SnippetTest(
-    //         id = testId,
-    //         snippetId = snippetId,
-    //         name = "test1",
-    //         inputs = emptyList(),
-    //         expectedOutputs = listOf("world"),
-    //         expectedStatus = TestStatus.VALID,
-    //         createdAt = LocalDateTime.now(),
-    //         updatedAt = LocalDateTime.now(),
-    //     )
-    //
-    //     every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
-    //     every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
-    //     every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
-    //
-    //     // When
-    //     val result = snippetTestService.executeTest(snippetId, testId, userId)
-    //
-    //     // Then
-    //     assertEquals(false, result["passed"])
-    //     assertEquals(listOf("world"), result["expected"])
-    //     assertEquals(listOf("hello"), result["actual"])
-    // }
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"hello\");"
+
+        // When
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+
+        // Then
+        assertEquals(true, result["passed"])
+        assertEquals(listOf("hello"), result["expectedOutputs"])
+        assertEquals(listOf("hello"), result["actualOutputs"])
+    }
+
+    @Test
+    fun `test executeTest failed`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+        val test = SnippetTest(
+            id = testId,
+            snippetId = snippetId,
+            name = "test1",
+            inputs = emptyList(),
+            expectedOutputs = listOf("world"),
+            expectedStatus = TestStatus.VALID,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"hello\");"
+
+        // When
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+
+        // Then
+        assertEquals(false, result["passed"])
+        assertEquals(listOf("world"), result["expectedOutputs"])
+        assertEquals(listOf("hello"), result["actualOutputs"])
+    }
+
+    @Test
+    fun `test executeTest expected to fail and it does`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+        val test = SnippetTest(
+            id = testId,
+            snippetId = snippetId,
+            name = "test1",
+            inputs = emptyList(),
+            expectedOutputs = listOf("world"),
+            expectedStatus = TestStatus.INVALID,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
+        every { assetServiceConnector.getSnippet(snippetId) } returns "println(\"hello\");" // Mismatched output
+
+        // When
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+
+        // Then
+        assertEquals(true, result["passed"])
+        assertEquals(listOf("world"), result["expectedOutputs"])
+        assertEquals(listOf("hello"), result["actualOutputs"])
+    }
+
+    @Test
+    fun `test executeTest expected to fail and execution fails`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+        val test = SnippetTest(
+            id = testId,
+            snippetId = snippetId,
+            name = "test1",
+            inputs = emptyList(),
+            expectedOutputs = listOf("world"),
+            expectedStatus = TestStatus.INVALID,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
+        every { assetServiceConnector.getSnippet(snippetId) } throws RuntimeException("Execution error")
+
+        // When
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+
+        // Then
+        assertEquals(true, result["passed"])
+        assertEquals(true, result["executionFailed"])
+    }
 }

@@ -16,11 +16,14 @@ services:
       DB_PORT: ${DB_PORT}
       PERMISSION_URL: ${PERMISSION_URL}
       PRINTSCRIPT_URL: ${PRINTSCRIPT_URL}
-      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
-      AUTH_SERVER_URI: ${AUTH_SERVER_URI}
-      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
-      AUTH0_MANAGEMENT_TOKEN: ${AUTH0_MANAGEMENT_TOKEN}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH_SERVER_URI}
+      ASSET_URL: ${ASSET_URL}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-}
+      AUTH_SERVER_URI: ${AUTH_SERVER_URI:-}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID:-}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET:-}
+      AUTH0_MANAGEMENT_TOKEN: ${AUTH0_MANAGEMENT_TOKEN:-}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH_SERVER_URI:-}
       # New Relic configuration
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
@@ -35,6 +38,7 @@ services:
       - default
       - permission-service-2025_default
       - printscript-service-2025_default
+      - asset-service_default
 
   db:
     container_name: snippet-db-${ENVIRONMENT}
@@ -55,21 +59,6 @@ services:
       retries: 5
       start_period: 30s
 
-  agent:
-    container_name: newrelic-infra
-    build:
-      context: .
-      dockerfile: newrelic/newrelic-infra/newrelic-infra.dockerfile
-    cap_add:
-      - SYS_PTRACE
-    network_mode: bridge
-    pid: host
-    privileged: true
-    volumes:
-      - "/:/host:ro"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    restart: unless-stopped
-
 volumes:
   postgres_data:
     name: postgres_data_${ENVIRONMENT}
@@ -79,4 +68,6 @@ networks:
   permission-service-2025_default:
     external: true
   printscript-service-2025_default:
+    external: true
+  asset-service_default:
     external: true

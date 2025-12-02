@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.service
 
+import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
 import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
@@ -22,6 +23,7 @@ class SnippetTestService(
     private val snippetRepository: SnippetRepository,
     private val permissionServiceConnector: PermissionServiceConnector,
     private val printScriptServiceConnector: PrintScriptServiceConnector,
+    private val assetServiceConnector: AssetServiceConnector,
 ) {
     private val logger = LoggerFactory.getLogger(SnippetTestService::class.java)
 
@@ -216,12 +218,16 @@ class SnippetTestService(
         // 2. Replace them with input values
         // 3. Execute and capture println() outputs
 
+        // Retrieve content from asset service
+        val content = assetServiceConnector.getSnippet(snippet.id)
+            ?: throw RuntimeException("No se pudo recuperar el contenido del snippet desde el servicio de assets")
+
         // For now, we simulate a simple execution:
         // We assume the snippet only has println() without readInput()
         val outputs = mutableListOf<String>()
 
         // Split content into lines and search for println()
-        val lines = snippet.content.lines()
+        val lines = content.lines()
         for (line in lines) {
             val trimmed = line.trim()
             if (trimmed.startsWith("println(") && trimmed.endsWith(");")) {
@@ -270,6 +276,93 @@ class SnippetTestService(
             expectedStatus = test.expectedStatus,
             createdAt = test.createdAt,
             updatedAt = test.updatedAt,
+        )
+    }
+
+    fun runAllTests(snippetId: String, userId: String): com.ingsisteam.snippetservice2025.model.dto.RunAllTestsResponseDTO {
+        logger.info("Running all tests for snippet {} by user: {}", snippetId, userId)
+
+        // Verificar que el snippet existe
+        snippetRepository.findById(snippetId).orElse(null)
+            ?: throw SnippetNotFoundException("Snippet con ID $snippetId no encontrado")
+
+        // Verificar permisos de lectura
+        if (!permissionServiceConnector.hasPermission(snippetId, userId)) {
+            logger.warn("User {} does not have permission to run tests on snippet {}", userId, snippetId)
+            throw PermissionDeniedException("No tienes permisos para ejecutar tests de este snippet")
+        }
+
+        // Obtener todos los tests del snippet
+        val tests = snippetTestRepository.findBySnippetId(snippetId)
+        logger.info("Found {} tests for snippet {}", tests.size, snippetId)
+
+        if (tests.isEmpty()) {
+            logger.warn("No tests found for snippet {}", snippetId)
+            return com.ingsisteam.snippetservice2025.model.dto.RunAllTestsResponseDTO(
+                snippetId = snippetId,
+                totalTests = 0,
+                passedTests = 0,
+                failedTests = 0,
+                results = emptyList(),
+            )
+        }
+
+        val results = mutableListOf<com.ingsisteam.snippetservice2025.model.dto.TestExecutionResult>()
+        var passedCount = 0
+        var failedCount = 0
+
+        tests.forEach { test ->
+            try {
+                logger.debug("Executing test: {}", test.name)
+                val executionResult = executeTest(snippetId, test.id, userId)
+
+                val passed = executionResult["passed"] as Boolean
+                val actualOutputs = executionResult["actualOutputs"] as List<String>
+                val errors = mutableListOf<String>()
+
+                if (executionResult.containsKey("error")) {
+                    errors.add(executionResult["error"] as String)
+                }
+
+                if (passed) {
+                    passedCount++
+                } else {
+                    failedCount++
+                }
+
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.TestExecutionResult(
+                        testId = test.id,
+                        testName = test.name,
+                        passed = passed,
+                        actualOutputs = actualOutputs,
+                        expectedOutputs = test.expectedOutputs,
+                        errors = errors,
+                    ),
+                )
+            } catch (e: Exception) {
+                logger.error("Failed to execute test {}: {}", test.name, e.message)
+                failedCount++
+                results.add(
+                    com.ingsisteam.snippetservice2025.model.dto.TestExecutionResult(
+                        testId = test.id,
+                        testName = test.name,
+                        passed = false,
+                        actualOutputs = emptyList(),
+                        expectedOutputs = test.expectedOutputs,
+                        errors = listOf(e.message ?: "Error desconocido"),
+                    ),
+                )
+            }
+        }
+
+        logger.info("All tests executed: {}/{} passed", passedCount, tests.size)
+        return com.ingsisteam.snippetservice2025.model.dto.RunAllTestsResponseDTO(
+            snippetId = snippetId,
+            totalTests = tests.size,
+            passedTests = passedCount,
+            failedTests = failedCount,
+            results = results,
         )
     }
 }
