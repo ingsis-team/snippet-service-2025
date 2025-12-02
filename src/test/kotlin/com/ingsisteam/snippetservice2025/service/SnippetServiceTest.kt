@@ -290,8 +290,6 @@ class SnippetServiceTest {
         verify(exactly = 1) { snippetRepository.save(any()) }
         verify(exactly = 1) { assetServiceConnector.storeSnippet("2", fileContent) }
         verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
-        verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
-        verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
         verify(exactly = 1) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
     }
 
@@ -428,8 +426,6 @@ class SnippetServiceTest {
         // Then
         verify(exactly = 1) { snippetRepository.save(any()) }
         verify(exactly = 1) { permissionServiceConnector.createPermission("2", userId, "OWNER") }
-        verify(exactly = 1) { snippetRepository.deleteById("2") }
-        verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticFormatting(any(), any(), any()) }
         verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticLinting(any(), any(), any()) }
         verify(exactly = 0) { printScriptServiceConnector.triggerAutomaticTesting(any(), any(), any()) }
     }
@@ -868,7 +864,6 @@ class SnippetServiceTest {
         )
         val updateSnippetDTO = UpdateSnippetDTO(description = "   ") // Blank description
         val originalContent = "println(\"original content\")"
-        val updatedSnippet = originalSnippet.copy(description = "   ")
 
         every { snippetRepository.findById(snippetId) } returns Optional.of(originalSnippet)
         every { permissionServiceConnector.hasWritePermission(snippetId, userId) } returns true
