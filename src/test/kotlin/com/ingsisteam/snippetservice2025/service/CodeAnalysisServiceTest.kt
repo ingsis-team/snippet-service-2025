@@ -7,6 +7,7 @@ import com.ingsisteam.snippetservice2025.model.dto.FormatterRulesFileDTO
 import com.ingsisteam.snippetservice2025.model.dto.LintIssue
 import com.ingsisteam.snippetservice2025.model.dto.external.Rule
 import com.ingsisteam.snippetservice2025.model.dto.external.SCAOutput
+import com.ingsisteam.snippetservice2025.model.dto.external.SnippetOutputDTO
 import com.ingsisteam.snippetservice2025.model.entity.Snippet
 import com.ingsisteam.snippetservice2025.model.enum.SnippetLanguage
 import com.ingsisteam.snippetservice2025.repository.SnippetRepository
@@ -56,7 +57,6 @@ class CodeAnalysisServiceTest {
 
     // --- Tests for formatSnippet ---
 
-    /*
     @Test
     fun `test formatSnippet success`() {
         // Given
@@ -70,6 +70,7 @@ class CodeAnalysisServiceTest {
         every { snippetRepository.findById(any()) } returns Optional.of(snippet)
         every { assetServiceConnector.getSnippet(any()) } returns content
         every { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) } returns snippetOutput
+        every { assetServiceConnector.updateSnippet(any(), any()) } returns true
 
         // When
         val result = codeAnalysisService.formatSnippet(snippetId, userId)
@@ -78,7 +79,6 @@ class CodeAnalysisServiceTest {
         assertEquals(formattedContent, result)
         verify(exactly = 1) { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) }
     }
-     */
 
     @Test
     fun `test formatSnippet snippet not found in repo`() {
@@ -290,60 +290,83 @@ class CodeAnalysisServiceTest {
         // Then
         assertEquals(rules, result)
         verify(exactly = 1) { printScriptConnector.saveLintingRules(userId, any(), rules) }
-        @Test
-        fun `test formatSnippet handles printScriptConnector exception`() {
-            // Given
-            val snippetId = UUID.randomUUID()
-            val userId = "user123"
-            val snippet = buildSnippet(id = snippetId.toString())
-            val content = "let a: string = 'hello';"
+    }
 
-            every { snippetRepository.findById(any()) } returns Optional.of(snippet)
-            every { assetServiceConnector.getSnippet(any()) } returns content
-            every {
-                printScriptConnector.formatSnippet(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                )
-            } throws RuntimeException("PrintScript error")
+    @Test
+    fun `test formatSnippet handles printScriptConnector exception`() {
+        // Given
+        val snippetId = UUID.randomUUID()
+        val userId = "user123"
+        val snippet = buildSnippet(id = snippetId.toString())
+        val content = "let a: string = 'hello';"
 
-            // When & Then
-            assertThrows<RuntimeException> {
-                codeAnalysisService.formatSnippet(snippetId, userId)
-            }
-            verify(exactly = 1) { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) }
-            verify(exactly = 0) { assetServiceConnector.updateSnippet(any(), any()) }
-        }
-
-        @Test
-        fun `test formatSnippet handles assetServiceConnector update exception`() {
-            // Given
-            val snippetId = UUID.randomUUID()
-            val userId = "user123"
-            val snippet = buildSnippet(id = snippetId.toString())
-            val content = "let a: string = 'hello';"
-            val formattedContent = "let a: string = 'hello';"
-            val snippetOutput = com.ingsisteam.snippetservice2025.model.dto.external.SnippetOutputDTO(
-                snippet = formattedContent,
-                correlationId = "corr-id",
-                snippetId = snippetId.toString(),
+        every { snippetRepository.findById(any()) } returns Optional.of(snippet)
+        every { assetServiceConnector.getSnippet(any()) } returns content
+        every {
+            printScriptConnector.formatSnippet(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
             )
+        } throws RuntimeException("PrintScript error")
 
-            every { snippetRepository.findById(any()) } returns Optional.of(snippet)
-            every { assetServiceConnector.getSnippet(any()) } returns content
-            every { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) } returns snippetOutput
-            every { assetServiceConnector.updateSnippet(any(), any()) } throws RuntimeException("Asset service error")
-
-            // When & Then
-            assertThrows<RuntimeException> {
-                codeAnalysisService.formatSnippet(snippetId, userId)
-            }
-            verify(exactly = 1) { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) }
-            verify(exactly = 1) { assetServiceConnector.updateSnippet(any(), any()) }
+        // When & Then
+        assertThrows<RuntimeException> {
+            codeAnalysisService.formatSnippet(snippetId, userId)
         }
+        verify(exactly = 1) { printScriptConnector.formatSnippet(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `test formatAllUserSnippets success`() {
+        // Given
+        val userId = "user123"
+        val snippet1 = buildSnippet(userId = userId)
+        val snippet2 = buildSnippet(userId = userId)
+        val snippets = listOf(snippet1, snippet2)
+        val content = "let a: string = 'hello';"
+        val formattedContent = "let a: string = 'hello';"
+        val snippetOutput1 = SnippetOutputDTO(snippet = formattedContent, correlationId = "corr-id-1", snippetId = snippet1.id)
+        val snippetOutput2 = SnippetOutputDTO(snippet = formattedContent, correlationId = "corr-id-2", snippetId = snippet2.id)
+
+        every { snippetRepository.findByUserId(userId) } returns snippets
+        every { assetServiceConnector.getSnippet(snippet1.id) } returns content
+        every { assetServiceConnector.getSnippet(snippet2.id) } returns content
+        every { printScriptConnector.formatSnippet(eq(snippet1.id), any(), any(), any(), any(), any()) } returns snippetOutput1
+        every { printScriptConnector.formatSnippet(eq(snippet2.id), any(), any(), any(), any(), any()) } returns snippetOutput2
+        every { assetServiceConnector.updateSnippet(any(), any()) } returns true
+
+        // When
+        val result = codeAnalysisService.formatAllUserSnippets(userId)
+
+        // Then
+        assertEquals(2, result.totalSnippets)
+    }
+
+    @Test
+    fun `test lintAllUserSnippets success`() {
+        // Given
+        val userId = "user123"
+        val snippet1 = buildSnippet(userId = userId)
+        val snippet2 = buildSnippet(userId = userId)
+        val snippets = listOf(snippet1, snippet2)
+        val content = "let a: string = 'hello';"
+        val lintingIssues = listOf(SCAOutput("camelCase", 1, 5, "Variable 'a' should be in camelCase"))
+        val noLintingIssues = emptyList<SCAOutput>()
+
+        every { snippetRepository.findByUserId(userId) } returns snippets
+        every { assetServiceConnector.getSnippet(snippet1.id) } returns content
+        every { assetServiceConnector.getSnippet(snippet2.id) } returns content
+        every { printScriptConnector.lintSnippet(eq(snippet1.id), any(), any(), any(), any(), any()) } returns lintingIssues
+        every { printScriptConnector.lintSnippet(eq(snippet2.id), any(), any(), any(), any(), any()) } returns noLintingIssues
+
+        // When
+        val result = codeAnalysisService.lintAllUserSnippets(userId)
+
+        // Then
+        assertEquals(2, result.totalSnippets)
     }
 }

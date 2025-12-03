@@ -3,6 +3,7 @@ package com.ingsisteam.snippetservice2025.service
 import com.ingsisteam.snippetservice2025.connector.AssetServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PermissionServiceConnector
 import com.ingsisteam.snippetservice2025.connector.PrintScriptServiceConnector
+import com.ingsisteam.snippetservice2025.exception.PermissionDeniedException
 import com.ingsisteam.snippetservice2025.exception.SnippetNotFoundException
 import com.ingsisteam.snippetservice2025.exception.TestNotFoundException
 import com.ingsisteam.snippetservice2025.model.dto.CreateTestDTO
@@ -416,6 +417,118 @@ class SnippetTestServiceTest {
 
         // Then
         assertEquals(true, result["passed"])
+        assertEquals(true, result["executionFailed"])
+    }
+
+    @Test
+    fun `test createTest with existing name`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val createTestDTO = CreateTestDTO(
+            name = "test1",
+            inputs = listOf("input1"),
+            expectedOutputs = listOf("output1"),
+            expectedStatus = TestStatus.VALID,
+        )
+        val snippet = Snippet(
+            id = snippetId,
+            name = "testSnippet",
+            description = "description",
+            language = SnippetLanguage.PRINTSCRIPT,
+            userId = userId,
+            version = "1.0",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.existsBySnippetIdAndName(snippetId, "test1") } returns true
+
+        // When & Then
+        assertThrows<IllegalArgumentException> {
+            snippetTestService.createTest(snippetId, createTestDTO, userId)
+        }
+    }
+
+    @Test
+    fun `test getTest no permission`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = Snippet(
+            id = snippetId,
+            name = "testSnippet",
+            description = "description",
+            language = SnippetLanguage.PRINTSCRIPT,
+            userId = userId,
+            version = "1.0",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns false
+
+        // When & Then
+        assertThrows<PermissionDeniedException> {
+            snippetTestService.getTest(snippetId, testId, userId)
+        }
+    }
+
+    @Test
+    fun `test deleteTest not found`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns null
+
+        // When & Then
+        assertThrows<TestNotFoundException> {
+            snippetTestService.deleteTest(snippetId, testId, userId)
+        }
+    }
+
+    @Test
+    fun `test executeTest snippet content not found`() {
+        // Given
+        val snippetId = "1"
+        val userId = "user123"
+        val testId = "1"
+        val snippet = buildSnippet(
+            id = snippetId,
+            userId = userId,
+        )
+        val test = SnippetTest(
+            id = testId,
+            snippetId = snippetId,
+            name = "test1",
+            inputs = emptyList(),
+            expectedOutputs = listOf("hello"),
+            expectedStatus = TestStatus.VALID,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
+
+        every { snippetRepository.findById(snippetId) } returns Optional.of(snippet)
+        every { permissionServiceConnector.hasPermission(snippetId, userId) } returns true
+        every { snippetTestRepository.findByIdAndSnippetId(testId, snippetId) } returns test
+        every { assetServiceConnector.getSnippet(snippetId) } returns null
+
+        // When
+        val result = snippetTestService.executeTest(snippetId, testId, userId)
+        // Then
+        assertEquals(false, result["passed"])
         assertEquals(true, result["executionFailed"])
     }
 }
