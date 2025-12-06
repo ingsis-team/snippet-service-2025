@@ -15,6 +15,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.cors.CorsConfigurationSource
 
+/**
+ * Configuración de seguridad para el recurso OAuth2.
+ * Configura la validación de tokens JWT y las reglas de autorización para las solicitudes entrantes.
+ */
 @Configuration
 @EnableWebSecurity
 class OAuth2ResourceServerSecurityConfiguration(
@@ -24,6 +28,11 @@ class OAuth2ResourceServerSecurityConfiguration(
     val issuer: String,
     private val corsConfigurationSource: CorsConfigurationSource,
 ) {
+
+    /**
+     * Configura la cadena de filtros de seguridad.
+     * Define las reglas de autorización, la configuración del servidor de recursos OAuth2 y CORS.
+     */
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http.authorizeHttpRequests {
@@ -38,6 +47,10 @@ class OAuth2ResourceServerSecurityConfiguration(
         return http.build()
     }
 
+    /**
+     * Configura el decodificador de JWT con validación personalizada.
+     * Incluye validación de emisor y audiencia.
+     */
     @Bean
     fun jwtDecoder(): JwtDecoder? {
         if (issuer.isNullOrBlank()) {

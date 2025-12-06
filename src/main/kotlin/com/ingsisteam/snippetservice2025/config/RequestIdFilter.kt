@@ -26,6 +26,12 @@ class RequestIdFilter : Filter {
         const val REQUEST_ID_MDC_KEY = "requestId"
     }
 
+    /**
+     * Procesa cada petición HTTP para asignar un Request ID.
+     * @param request La petición entrante
+     * @param response La respuesta saliente
+     * @param chain La cadena de filtros
+     */
     override fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
         val httpRequest = request as HttpServletRequest
         val httpResponse = response as HttpServletResponse
@@ -48,6 +54,7 @@ class RequestIdFilter : Filter {
                 httpRequest.remoteAddr,
             )
 
+            // Continuar con la cadena de filtros
             chain.doFilter(request, response)
 
             logger.info(
