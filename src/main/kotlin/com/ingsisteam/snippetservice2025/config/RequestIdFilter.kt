@@ -1,5 +1,6 @@
 package com.ingsisteam.snippetservice2025.config
 
+import com.newrelic.api.agent.NewRelic
 import jakarta.servlet.Filter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
@@ -46,6 +47,9 @@ class RequestIdFilter : Filter {
 
             // Agregar Request ID al response header para trazabilidad
             httpResponse.setHeader(REQUEST_ID_HEADER, requestId)
+
+            // Agregar atributo personalizado a NewRelic
+            NewRelic.addCustomParameter("requestId", requestId)
 
             logger.info(
                 "\nIncoming request: {} {} from {}",
