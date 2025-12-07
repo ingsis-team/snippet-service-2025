@@ -8,6 +8,10 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
+/**
+ * Configuración de WebClient con un filtro para propagar el Request ID.
+ * El filtro agrega el header X-Request-ID a todas las peticiones salientes tomando el valor desde el MDC.
+ */
 @Configuration
 class WebClientConfig {
 

@@ -136,10 +136,10 @@ common: &default_settings
       context_data:
 
         # When true, application logs will contain context data.
-        enabled: false
+        enabled: true
 
         # A comma separated list of attribute keys whose values should be sent to New Relic.
-        #include:
+        include: requestId
 
         # A comma separated list of attribute keys whose values should not be sent to New Relic.
         #exclude:
