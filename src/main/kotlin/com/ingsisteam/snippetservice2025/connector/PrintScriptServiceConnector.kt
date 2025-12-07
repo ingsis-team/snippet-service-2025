@@ -219,7 +219,7 @@ class PrintScriptServiceConnector(
             val snippetDto = SnippetDTO(
                 snippetId = snippetId,
                 correlationId = correlationId,
-                language = language,
+                language = language.lowercase(), // Convert to lowercase for PrintScript service
                 version = version,
                 input = input,
                 userId = userId,
