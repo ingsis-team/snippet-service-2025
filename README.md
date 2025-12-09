@@ -9,9 +9,12 @@ Service for managing code snippets developed with Spring Boot and Kotlin. Provid
 - **File Upload**: Upload snippets via multipart file upload
 - **JSON-based Operations**: Create and update snippets directly from editor (JSON)
 - **Syntax Validation**: Validate snippet syntax before saving
+- **Code Formatting**: Format snippets according to user-defined rules
+- **Linting**: Analyze snippets with configurable linting rules (camelCase, snake_case, printOnly, inputOnly)
 - **Permission Integration**: Integrates with Permission Service for access control
 - **Language Support**: Supports multiple programming languages (PrintScript, etc.)
 - **Pagination**: List snippets with pagination support
+- **Test Management**: Create and run tests for snippets
 
 ## Running the Project
 
@@ -30,6 +33,7 @@ Once running: http://localhost:8080/swagger-ui.html
 
 ## Main Endpoints
 
+### Snippet Management
 - `GET /api/snippets` - List all snippets (with pagination)
 - `GET /api/snippets/{id}` - Get snippet by ID
 - `POST /api/snippets` - Create snippet (multipart file upload)
@@ -37,6 +41,23 @@ Once running: http://localhost:8080/swagger-ui.html
 - `PUT /api/snippets/{id}` - Update snippet (multipart file upload)
 - `PUT /api/snippets/{id}` (JSON) - Update snippet from editor
 - `DELETE /api/snippets/{id}` - Delete snippet
+
+### Code Analysis
+- `POST /format` - Format a snippet according to user rules
+- `POST /lint` - Lint a snippet with configured rules
+- `POST /format/all` - Format all user snippets
+- `POST /lint/all` - Lint all user snippets
+
+### Rules Management
+- `GET /rules/format` - Get formatting rules for current user
+- `POST /rules/format` - Save formatting rules for current user
+- `GET /rules/lint` - Get linting rules for current user
+- `POST /rules/lint` - Save linting rules for current user
+
+### Testing
+- `POST /api/snippets/{snippetId}/tests` - Create a test for a snippet
+- `GET /api/snippets/{snippetId}/tests` - Get all tests for a snippet
+- `POST /api/snippets/{snippetId}/tests/run-all` - Run all tests for a snippet
 
 ## Technologies
 
@@ -69,7 +90,13 @@ The service integrates with Permission Service to check write permissions before
 - `GET /api/permissions/write-check?snippetId={id}&userId={userId}`
 
 ### PrintScript Service
-The service can integrate with PrintScript Service for syntax validation (currently commented out, ready for activation).
+The service integrates with PrintScript Service for:
+- **Syntax Validation**: Validates PrintScript code syntax before saving
+- **Code Formatting**: Formats code according to user-defined formatting rules
+- **Linting**: Analyzes code with configurable linting rules:
+  - `identifier_format`: Enforce camelCase or snake_case naming
+  - `enablePrintOnly`: Restrict to print statements only
+  - `enableInputOnly`: Restrict to input statements only (v1.1+)
 
 ## Docker Build
 
